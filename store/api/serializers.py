@@ -9,13 +9,22 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'password' , "phone_number"]
+        fields = ['name','username', 'email' , "password","is_staff"]
         extra_kwargs = {'password': {'write_only': True}}
-
+        
     def create(self, validated_data):
+        #inorder to determine the role of the user base on the is_staff provided by the client or not
+        try:
+            is_staff = validated_data["is_staff"]
+            role="A"
+        except KeyError:
+            role="U"
         user = User.objects.create(
+            name=validated_data['name'],
             username=validated_data['username'],
-            phone_number=validated_data['phone_number']
+            email=validated_data['email'],
+            is_staff=validated_data["is_staff"],
+            role=role,
         )
         user.set_password(validated_data['password'])
         user.save()

@@ -27,10 +27,14 @@ class RegisterView(APIView):
             refresh = RefreshToken.for_user(user)
             response_data = {
                 'access_token': str(refresh.access_token),
-                'refresh_token' : str(refresh),
-                'user_id': user.id,
+                # 'refresh_token' : str(refresh),
+                "user":{
                 'username': user.username,
-                'phone_number': user.phone_number,
+                "email":user.email,
+                "name":user.name,
+                "role":user.role,
+                "_id": user.id,
+                }
             }
             return Response(response_data,status=status.HTTP_201_CREATED)
         
