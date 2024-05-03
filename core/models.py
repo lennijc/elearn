@@ -10,7 +10,6 @@ import uuid
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name=models.CharField(max_length=255,null=True)
-    phone_number=models.CharField(max_length=11)
     ROLE_CHOICES=[
     ('U',"USER"),
     ('A',"ADMIN")
@@ -18,6 +17,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=1,choices=ROLE_CHOICES,default="U")
     created_at=models.DateTimeField(auto_now_add=True,null=True)
     updated_at=models.DateTimeField(auto_now=True)
+    phone=models.CharField(max_length=11,null=True)
     
     
     

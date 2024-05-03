@@ -23,7 +23,7 @@ class RegisterView(APIView):
         serializer = UserRegistrationSerializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
-            user = serializer.save(updated_fields=["username","password","phone_number"])
+            user = serializer.save()
             refresh = RefreshToken.for_user(user)
             response_data = {
                 'access_token': str(refresh.access_token),
@@ -34,6 +34,7 @@ class RegisterView(APIView):
                 "name":user.name,
                 "role":user.role,
                 "_id": user.id,
+                "phone":user.phone
                 }
             }
             return Response(response_data,status=status.HTTP_201_CREATED)
