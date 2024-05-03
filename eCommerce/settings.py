@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework',
 
     'rest_framework_simplejwt',
+    'corsheaders'
 ]
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
@@ -93,6 +94,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'eCommerce.wsgi.application'
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 # Database
