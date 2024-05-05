@@ -20,6 +20,11 @@ class User(AbstractUser):
     updated_at=models.DateTimeField(auto_now=True)
     phone=models.CharField(max_length=11,null=True)
     
+    email = models.EmailField(unique=True, error_messages={
+        'unique': "A user with that email already exists.",
+    })
+
+    
     
     
 

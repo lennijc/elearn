@@ -28,11 +28,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         try:
-            is_staff = validated_data["is_staff"]
-            role="ADMIN"
+            print("validated data before is staff set",validated_data)
+            if validated_data["is_staff"]:
+                validated_data["role"]="ADMIN"
+            else:
+                validated_data["role"]="USER"
+            print("validated data after the is staff set",validated_data)
         except KeyError:
             #if no is_staff provided by the user then it has to put the default value for the role which is user
-            role="USER"
+            validated_data["role"]="USER"
         # Remove the confirm_password field from the validated data
 
         validated_data.pop('confirmPassword', None)
@@ -53,12 +57,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["phone"]=self.user.phone
         return data
     def to_internal_value(self, data):
-        # Rename 'identifier' to 'username' if 'identifier' is present(client sending identifier instead of username)
-        if 'identifier' in data:
-            print("we are in and data is: ",data)
-            data['username'] = data.pop('identifier')
         return super().to_internal_value(data)
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
