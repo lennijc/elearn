@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer
+from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -12,7 +12,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
-from ..models import menus,courses
+from ..models import menus,courses,categories
 
 
 user = get_user_model()
@@ -66,7 +66,11 @@ class topbarmenu(APIView):
         serializer = coursesSerializer(allcourses,many=True)
         return Response(serializer.data , status=status.HTTP_200_OK)          
 
-
+class categoriesApi(APIView):
+    def get(self,request):
+        allCategories = categories.objects.all()
+        serializer=categorySerializer(allCategories,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
         
 
 

@@ -4,18 +4,23 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-from ..models import menus,courses
+from ..models import menus,courses,categories
 User = get_user_model()
 
 class menuSerializer(serializers.ModelSerializer):
     class Meta:
         model=menus
         fields="__all__"
+
 class coursesSerializer(serializers.ModelSerializer):
     class Meta:
         model=courses
         fields="__all__"
-        
+
+class categorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model=categories
+        fields="__all__"
 class UserRegistrationSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True)
     class Meta:
@@ -37,12 +42,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         try:
-            print("validated data before is staff set",validated_data)
+            
             if validated_data["is_staff"]:
                 validated_data["role"]="ADMIN"
             else:
                 validated_data["role"]="USER"
-            print("validated data after the is staff set",validated_data)
+            
         except KeyError:
             #if no is_staff provided by the user then it has to put the default value for the role which is user
             validated_data["role"]="USER"
