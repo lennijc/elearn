@@ -3,16 +3,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from .serializers import UserRegistrationSerializer,UserSerializer
+from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.exceptions import TokenError,InvalidToken
-from core.models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
+from ..models import menus,courses
 
 
 user = get_user_model()
@@ -51,7 +51,20 @@ class UserDetailView(APIView):
         return Response(serializer.data)
 
 
-           
+class menu(APIView):
+    def get(self,request):
+        
+        allMenus = menus.objects.all()
+        serializer = menuSerializer(allMenus,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+        
+#the 5 last created courses
+class topbarmenu(APIView):
+    def get(self,request):
+        allcourses=courses.objects.all()
+        print(allcourses)
+        serializer = coursesSerializer(allcourses,many=True)
+        return Response(serializer.data , status=status.HTTP_200_OK)          
 
 
         

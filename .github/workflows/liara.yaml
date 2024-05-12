@@ -2,7 +2,7 @@ name: CD-Liara
 on:
   push:
     branches:
-      - master
+      - labbranch
 jobs:
   deploy:
     runs-on: ubuntu-latest

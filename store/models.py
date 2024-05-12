@@ -1,6 +1,37 @@
 from django.db import models
-
+from django.contrib.auth import get_user_model
 # Create your models here.
+
+User=get_user_model()
+class categories(models.Model):
+    title=models.CharField(max_length=255)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    name=models.CharField(max_length=255)
+    def __str__(self):
+        return self.title
+class courses(models.Model):
+    name=models.CharField(max_length=255)
+    description=models.TextField(null=True , blank=True)
+    cover = models.ImageField(null=True , blank=True)
+    shortName=models.CharField(max_length=255)
+    categoryID=models.ForeignKey(categories,on_delete=models.PROTECT)
+    creator=models.ForeignKey(User,on_delete=models.PROTECT,null=True,blank=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    isComplete=models.BooleanField()
+    def __str__(self):
+        return self.shortName
+class menus(models.Model):
+    title = models.CharField(max_length=255)
+    href = models.CharField(max_length=255)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return self.title
+        
+
+
 
 class promotions(models.Model):
     description = models.CharField(max_length=255)

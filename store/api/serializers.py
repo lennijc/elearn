@@ -1,12 +1,21 @@
 from typing import Any, Dict
 from rest_framework import serializers
 from django.conf import settings
-
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-
+from ..models import menus,courses
 User = get_user_model()
+
+class menuSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=menus
+        fields="__all__"
+class coursesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=courses
+        fields="__all__"
+        
 class UserRegistrationSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True)
     class Meta:
@@ -62,3 +71,4 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         exclude = ['password'] #hashed password excluded
+        
