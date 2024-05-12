@@ -9,7 +9,7 @@ User = get_user_model()
 
 class menuSerializer(serializers.ModelSerializer):
     class Meta:
-        Model = menus
+        model=menus
         fields="__all__"
 class coursesSerializer(serializers.ModelSerializer):
     class Meta:

@@ -24,7 +24,7 @@ class courses(models.Model):
         return self.shortName
 class menus(models.Model):
     title = models.CharField(max_length=255)
-    href = models.ForeignKey(courses,on_delete=models.PROTECT)
+    href = models.CharField(max_length=255)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     def __str__(self):
