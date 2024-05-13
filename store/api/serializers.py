@@ -4,9 +4,14 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-from ..models import menus,courses,categories
+from ..models import menus,courses,categories,article
 User = get_user_model()
 
+
+class articleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=article
+        fields="__all__"
 class menuSerializer(serializers.ModelSerializer):
     class Meta:
         model=menus
@@ -62,6 +67,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 
+
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     token_class = RefreshToken
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, str]:
@@ -77,3 +83,8 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         exclude = ['password'] #hashed password excluded
         
+class NavbarCategoriesSerializer(serializers.ModelSerializer):
+    sub_menu=coursesSerializer(source="courses_set",many=True,read_only=True)
+    class Meta:
+        model=categories
+        fields=["id","title","createdAt","updatedAt","name","sub_menu"]

@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer
+from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -12,7 +12,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
-from ..models import menus,courses,categories
+from ..models import menus,courses,categories,article
 
 
 user = get_user_model()
@@ -53,7 +53,6 @@ class UserDetailView(APIView):
 
 class menu(APIView):
     def get(self,request):
-        
         allMenus = menus.objects.all()
         serializer = menuSerializer(allMenus,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
@@ -62,7 +61,6 @@ class menu(APIView):
 class topbarmenu(APIView):
     def get(self,request):
         allcourses=courses.objects.all()
-        print(allcourses)
         serializer = coursesSerializer(allcourses,many=True)
         return Response(serializer.data , status=status.HTTP_200_OK)          
 
@@ -71,8 +69,25 @@ class categoriesApi(APIView):
         allCategories = categories.objects.all()
         serializer=categorySerializer(allCategories,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
-        
 
+class searchApi(APIView):
+    def get(self,request,query):
+        course_res=courses.objects.filter(
+            name__icontains=query)|courses.objects.filter(
+            description__icontains=query)
+        article_res=article.objects.filter(
+            title__icontains=query)|article.objects.filter(
+            description__icontains=query)|article.objects.filter(
+            shortName__icontains=query)
+        course_serializer=coursesSerializer(course_res,many=True)
+        article_serializer=articleSerializer(article_res,many=True)
+        return Response({"courses":course_serializer.data,"articles":article_serializer.data})
+
+class NavbarApi(APIView):
+    def get(self,request):
+        all_categories=categories.objects.all()
+        serializer=NavbarCategoriesSerializer(all_categories,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
 
     
 
