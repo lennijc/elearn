@@ -8,7 +8,7 @@ class article(models.Model):
     title=models.CharField(max_length=255)
     description=models.TextField()
     body=models.CharField(max_length=255)
-    cover=models.ImageField()
+    cover=models.ImageField(null=True,blank=True)
     shortName=models.CharField(max_length=255)
     category=models.ForeignKey("categories",on_delete=models.PROTECT)
     creator=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
