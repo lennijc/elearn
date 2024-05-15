@@ -9,5 +9,5 @@ urlpatterns = [
     path("signup/",RegisterView.as_view()),
     path("getme/",UserDetailView.as_view()),
     path("menus/",menu.as_view()),
-    path("menus/topbar",topbarmenu.as_view()),
+    path("menus/topbar/",topbarmenu.as_view()),
 ]
