@@ -4,18 +4,28 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-from ..models import menus,courses
+from ..models import menus,courses,categories,article
 User = get_user_model()
 
+
+class articleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=article
+        fields="__all__"
 class menuSerializer(serializers.ModelSerializer):
     class Meta:
         model=menus
         fields="__all__"
 class coursesSerializer(serializers.ModelSerializer):
+    creator=serializers.StringRelatedField()
     class Meta:
         model=courses
         fields="__all__"
-        
+
+class categorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model=categories
+        fields="__all__"
 class UserRegistrationSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True)
     class Meta:
@@ -37,11 +47,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         try:
-            is_staff = validated_data["is_staff"]
-            role="ADMIN"
+            
+            if validated_data["is_staff"]:
+                validated_data["role"]="ADMIN"
+            else:
+                validated_data["role"]="USER"
+            
         except KeyError:
             #if no is_staff provided by the user then it has to put the default value for the role which is user
-            role="USER"
+            validated_data["role"]="USER"
         # Remove the confirm_password field from the validated data
 
         validated_data.pop('confirmPassword', None)
@@ -50,6 +64,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         user.save()
         return user
+
 
 
 
@@ -62,14 +77,14 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["phone"]=self.user.phone
         return data
     def to_internal_value(self, data):
-        # Rename 'identifier' to 'username' if 'identifier' is present(client sending identifier instead of username)
-        if 'identifier' in data:
-            print("we are in and data is: ",data)
-            data['username'] = data.pop('identifier')
         return super().to_internal_value(data)
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         exclude = ['password'] #hashed password excluded
         
+class NavbarCategoriesSerializer(serializers.ModelSerializer):
+    sub_menu=coursesSerializer(source="courses_set",many=True,read_only=True)
+    class Meta:
+        model=categories
+        fields=["id","title","createdAt","updatedAt","name","sub_menu"]

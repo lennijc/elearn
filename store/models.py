@@ -3,6 +3,19 @@ from django.contrib.auth import get_user_model
 # Create your models here.
 
 User=get_user_model()
+
+class article(models.Model):
+    title=models.CharField(max_length=255)
+    description=models.TextField()
+    body=models.CharField(max_length=255)
+    cover=models.ImageField(null=True,blank=True)
+    href=models.CharField(max_length=255)
+    category=models.ForeignKey("categories",on_delete=models.PROTECT)
+    creator=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    publish=models.BooleanField()
+
 class categories(models.Model):
     title=models.CharField(max_length=255)
     createdAt = models.DateTimeField(auto_now_add=True)
@@ -14,7 +27,7 @@ class courses(models.Model):
     name=models.CharField(max_length=255)
     description=models.TextField(null=True , blank=True)
     cover = models.ImageField(null=True , blank=True)
-    shortName=models.CharField(max_length=255)
+    href=models.CharField(max_length=255)
     categoryID=models.ForeignKey(categories,on_delete=models.PROTECT)
     creator=models.ForeignKey(User,on_delete=models.PROTECT,null=True,blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
