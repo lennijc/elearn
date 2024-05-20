@@ -33,8 +33,29 @@ class courses(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     isComplete=models.BooleanField()
+    user=models.ManyToManyField(
+        User,
+        through="courseUser",
+        through_fields=("course","user"),
+        related_name="student"
+        )
+    
     def __str__(self):
-        return self.shortName
+        return self.href
+    
+class courseUser(models.Model):
+    course = models.ForeignKey(courses,on_delete=models.PROTECT)
+    user = models.ForeignKey(User,on_delete=models.PROTECT)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'course'], name='user_can_enroll_once_to_a_course')
+        ]
+        
+    def __str__(self):
+        return str(self.user) + " registered in " + str(self.course)
+    
 class menus(models.Model):
     title = models.CharField(max_length=255)
     href = models.CharField(max_length=255)

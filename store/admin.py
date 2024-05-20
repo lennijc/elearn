@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import product,Customer,Order,collection,menus,courses,categories,article
+from .models import product,Customer,Order,collection,menus,courses,categories,article,courseUser
 # Register your models here.
 
 
@@ -11,3 +11,4 @@ admin.site.register(menus)
 admin.site.register(courses)
 admin.site.register(categories)
 admin.site.register(article)
+admin.site.register(courseUser)
