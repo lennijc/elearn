@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer
+from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -12,7 +12,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
-from ..models import menus,courses,categories,article
+from ..models import menus,courses,categories,article,courseUser
 
 
 user = get_user_model()
@@ -89,8 +89,26 @@ class NavbarApi(APIView):
         serializer=NavbarCategoriesSerializer(all_categories,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
-    
+class courseUserApi(APIView):
+    def get(self,request):
+        all_courses=courseUser.objects.all()
+        serializer=courseuser(all_courses,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
 
+
+class course_info(APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self,request,shortName):
+        courseStudentsCount=courseUser.objects.filter(course__href=shortName).count()
+        print("student count is: " ,courseStudentsCount)
+        isUserRegisteredToThisCourse=True if courseUser.objects.filter(course__href=shortName,user=request.user) else False
+        print(isUserRegisteredToThisCourse)
+        course=courses.objects.get(href=shortName)
+        serializer=courseInfoSerializer(course,context={"courseStudentsCount":courseStudentsCount,"isUserRegisteredToThisCourse":isUserRegisteredToThisCourse})
+        # serializer.data["courseStudentsCount"] = courseStudentsCount
+        # serializer.data["isUserRegisteredToThisCourse"] = isUserRegisteredToThisCourse
+        return Response(serializer.data,status=status.HTTP_200_OK)
+            
 
 
         

@@ -4,7 +4,7 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-from ..models import menus,courses,categories,article
+from ..models import menus,courses,categories,article,courseUser,comment
 User = get_user_model()
 
 
@@ -88,3 +88,35 @@ class NavbarCategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model=categories
         fields=["id","title","createdAt","updatedAt","name","sub_menu"]
+
+class courseuser(serializers.ModelSerializer):
+    #student = coursesSerializer(source="student_user",many=True,read_only=True)
+    #course=coursesSerializer(source="course_set",many=True)
+    student=UserSerializer(source="user")
+    study=coursesSerializer(source="course")
+    class Meta:
+        model=courseUser
+        fields=["student","study","createdAt","updatedAt"]
+
+
+
+class commentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=comment
+        fields="__all__"
+
+class courseInfoSerializer(serializers.ModelSerializer):
+    categoryID=categorySerializer(read_only=True)
+    creator=UserSerializer(read_only=True)
+    comments=commentSerializer(source="comment_set",many=True,read_only=True)
+    class Meta:
+        model=courses
+        exclude=["student"]
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        context = self.context
+        representation["courseStudentsCount"] = context["courseStudentsCount"]
+        representation["isUserRegisteredToThisCourse"] = context["isUserRegisteredToThisCourse"]
+        return representation
+
+    
