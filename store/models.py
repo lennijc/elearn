@@ -4,6 +4,26 @@ from django.contrib.auth import get_user_model
 
 User=get_user_model()
 
+class comment(models.Model):
+    body = models.TextField()
+    course = models.ForeignKey("courses",on_delete=models.CASCADE)
+    creator = models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    answer=models.IntegerField()
+    isAnswer=models.BooleanField()
+    SCORE_CHOICES=[
+        ("1","one"),
+        ("2","two"),
+        ("3","three"),
+        ("4","four"),
+        ("5","five"),
+    ]
+    score=models.CharField(max_length=1,choices=SCORE_CHOICES)
+    def __str__(self) -> str:
+        return str(self.creator)
+
+
 class article(models.Model):
     title=models.CharField(max_length=255)
     description=models.TextField()
@@ -32,30 +52,23 @@ class courses(models.Model):
     creator=models.ForeignKey(User,on_delete=models.PROTECT,null=True,blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
+    student = models.ManyToManyField(User,through="courseUser",through_fields=('course','user'),related_name="student_user")
     isComplete=models.BooleanField()
-    user=models.ManyToManyField(
-        User,
-        through="courseUser",
-        through_fields=("course","user"),
-        related_name="student"
-        )
-    
+    price=models.PositiveIntegerField(null=True,blank=True)
     def __str__(self):
         return self.href
-    
+
 class courseUser(models.Model):
-    course = models.ForeignKey(courses,on_delete=models.PROTECT)
-    user = models.ForeignKey(User,on_delete=models.PROTECT)
+    course = models.ForeignKey(courses,on_delete=models.CASCADE)
+    user= models.ForeignKey(User,on_delete=models.PROTECT)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
+    def __str__(self) -> str:
+        return str(self.course)
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['user', 'course'], name='user_can_enroll_once_to_a_course')
+            models.UniqueConstraint(fields=['course', 'user'], name='cannot_register_twice'),
         ]
-        
-    def __str__(self):
-        return str(self.user) + " registered in " + str(self.course)
-    
 class menus(models.Model):
     title = models.CharField(max_length=255)
     href = models.CharField(max_length=255)
@@ -64,8 +77,6 @@ class menus(models.Model):
     def __str__(self):
         return self.title
         
-
-
 
 class promotions(models.Model):
     description = models.CharField(max_length=255)
