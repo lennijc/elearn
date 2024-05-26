@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer
+from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -95,22 +95,29 @@ class courseUserApi(APIView):
         serializer=courseuser(all_courses,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
-
 class course_info(APIView):
     permission_classes=[IsAuthenticated]
     def get(self,request,shortName):
         courseStudentsCount=courseUser.objects.filter(course__href=shortName).count()
-        print("student count is: " ,courseStudentsCount)
         isUserRegisteredToThisCourse=True if courseUser.objects.filter(course__href=shortName,user=request.user) else False
-        print(isUserRegisteredToThisCourse)
-        course=courses.objects.get(href=shortName)
+        try:
+            course=courses.objects.get(href=shortName)
+        except:
+            return Response({"DoesNotExist":f"course matching the query '{shortName}' does not exist"})
         serializer=courseInfoSerializer(course,context={"courseStudentsCount":courseStudentsCount,"isUserRegisteredToThisCourse":isUserRegisteredToThisCourse})
-        # serializer.data["courseStudentsCount"] = courseStudentsCount
-        # serializer.data["isUserRegisteredToThisCourse"] = isUserRegisteredToThisCourse
         return Response(serializer.data,status=status.HTTP_200_OK)
-            
 
+class commentApi(APIView):
+    permission_classes = [IsAuthenticated]
 
-        
-
-
+    def post(self,request):
+        course_short_name = request.data.get('courseShortName')
+        try:
+            course = courses.objects.get(href=course_short_name)
+            request.data["course"]=course.id
+        except courses.DoesNotExist:
+            return Response({"error": "Course short name not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = commentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(course=course,creator=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
