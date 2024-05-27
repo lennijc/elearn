@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer
+from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -121,3 +121,10 @@ class commentApi(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(course=course,creator=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class getAllCourses(APIView):
+    def get(self,request):
+        allCourses=courses.objects.all()
+        serializer=AllCourseSerializer(allCourses,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+        

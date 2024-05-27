@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
 from ..models import menus,courses,categories,article,courseUser,comment,session
+from django.db.models import Avg
 User = get_user_model()
 
 
@@ -124,4 +125,17 @@ class courseInfoSerializer(serializers.ModelSerializer):
         return representation
 
 
-    
+class AllCourseSerializer(serializers.ModelSerializer):
+    creator=serializers.SlugRelatedField(read_only=True,slug_field="username")
+    courseAverageScore=serializers.SerializerMethodField()
+    registers=serializers.SerializerMethodField()
+    class Meta:
+        model=courses
+        exclude=["student"]
+    def get_courseAverageScore(self,obj):
+        average_score = comment.objects.filter(course=obj).aggregate(Avg("score"))
+        print(average_score)
+        return int(average_score["score__avg"]) if average_score["score__avg"] else 5
+    def get_registers(self,obj):
+        courseStudentsCount=courseUser.objects.filter(course=obj).count()
+        return courseStudentsCount
