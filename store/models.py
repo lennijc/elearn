@@ -69,6 +69,8 @@ class courseUser(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['course', 'user'], name='cannot_register_twice'),
         ]
+        
+
 class menus(models.Model):
     title = models.CharField(max_length=255)
     href = models.CharField(max_length=255)

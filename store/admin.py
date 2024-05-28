@@ -13,3 +13,4 @@ admin.site.register(categories)
 admin.site.register(article)
 admin.site.register(courseUser)
 admin.site.register(comment)
+

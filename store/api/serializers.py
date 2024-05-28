@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
 from ..models import menus,courses,categories,article,courseUser,comment
+from django.db.models import Avg
 User = get_user_model()
 
 
@@ -12,6 +13,7 @@ class articleSerializer(serializers.ModelSerializer):
     class Meta:
         model=article
         fields="__all__"
+
 class menuSerializer(serializers.ModelSerializer):
     class Meta:
         model=menus
@@ -26,6 +28,7 @@ class categorySerializer(serializers.ModelSerializer):
     class Meta:
         model=categories
         fields="__all__"
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True)
     class Meta:
@@ -65,9 +68,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-
-
-
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     token_class = RefreshToken
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, str]:
@@ -78,6 +78,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
     def to_internal_value(self, data):
         return super().to_internal_value(data)
+    
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -98,17 +99,21 @@ class courseuser(serializers.ModelSerializer):
         model=courseUser
         fields=["student","study","createdAt","updatedAt"]
 
-
-
 class commentSerializer(serializers.ModelSerializer):
     class Meta:
         model=comment
         fields="__all__"
 
+# class sessionSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model=session
+#         fields="__all__"
+
 class courseInfoSerializer(serializers.ModelSerializer):
     categoryID=categorySerializer(read_only=True)
     creator=UserSerializer(read_only=True)
     comments=commentSerializer(source="comment_set",many=True,read_only=True)
+    # sessions=sessionSerializer(source="session_set",many=True,read_only=True)
     class Meta:
         model=courses
         exclude=["student"]
@@ -119,4 +124,18 @@ class courseInfoSerializer(serializers.ModelSerializer):
         representation["isUserRegisteredToThisCourse"] = context["isUserRegisteredToThisCourse"]
         return representation
 
-    
+
+class AllCourseSerializer(serializers.ModelSerializer):
+    creator=serializers.SlugRelatedField(read_only=True,slug_field="username")
+    courseAverageScore=serializers.SerializerMethodField()
+    registers=serializers.SerializerMethodField()
+    class Meta:
+        model=courses
+        exclude=["student"]
+    def get_courseAverageScore(self,obj):
+        average_score = comment.objects.filter(course=obj).aggregate(Avg("score"))
+        print(average_score)
+        return int(average_score["score__avg"]) if average_score["score__avg"] else 5
+    def get_registers(self,obj):
+        courseStudentsCount=courseUser.objects.filter(course=obj).count()
+        return courseStudentsCount
