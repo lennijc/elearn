@@ -1,7 +1,7 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib import admin
 from django.urls import path
-from .views import RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,searchApi,NavbarApi,courseUserApi,course_info,commentApi,getAllCourses
+from .views import RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,searchApi,NavbarApi,courseUserApi,course_info,commentApi,getAllCourses,presell,alluser,getPopularCourses
 
 urlpatterns = [
     path("token/",TokenObtainPairView.as_view()),
@@ -17,4 +17,7 @@ urlpatterns = [
     path('courseinfo/<str:shortName>/', course_info.as_view(), name='course-info'),
     path('comments/', commentApi.as_view(), name='comment'),
     path('allcourses/', getAllCourses.as_view(), name='allcourses'),
+    path('courses/presell/', presell.as_view(), name='presell'),
+    path('users/', alluser.as_view(), name='allUsers'),
+    path('courses/popular/', getPopularCourses.as_view(), name='getPopular'),
 ]

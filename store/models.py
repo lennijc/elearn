@@ -80,6 +80,15 @@ class session(models.Model):
     free = models.BooleanField()
     def __str__(self):
         return self.title
+    
+class notification(models.Model):
+    msg = models.TextField()
+    admin=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    see=models.BooleanField(default=False)
+    def __str__(self):
+        return self.msg
 
 class menus(models.Model):
     title = models.CharField(max_length=255)
