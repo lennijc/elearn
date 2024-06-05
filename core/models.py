@@ -19,7 +19,7 @@ class User(AbstractUser):
     created_at=models.DateTimeField(auto_now_add=True,null=True)
     updated_at=models.DateTimeField(auto_now=True)
     phone=models.CharField(max_length=11,null=True)
-    
+    img=models.ImageField(upload_to="uploads/",null=True,blank=True)
     email = models.EmailField(unique=True, error_messages={
         'unique': "A user with that email already exists.",
     })

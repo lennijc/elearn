@@ -6,7 +6,8 @@ User=get_user_model()
 
 class comment(models.Model):
     body = models.TextField()
-    course = models.ForeignKey("courses",on_delete=models.CASCADE)
+    course = models.ForeignKey("courses",on_delete=models.SET_NULL,null=True,blank=True)
+    article = models.ForeignKey("article",on_delete=models.SET_NULL,null=True,blank=True)
     creator = models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
@@ -29,13 +30,15 @@ class article(models.Model):
     description=models.TextField()
     body=models.CharField(max_length=255)
     cover=models.ImageField(null=True,blank=True)
-    href=models.CharField(max_length=255)
+    href=models.CharField(max_length=255,unique=True)
     category=models.ForeignKey("categories",on_delete=models.PROTECT)
     creator=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     publish=models.BooleanField()
-
+    def __str__(self) -> str:
+        return self.title
+    
 class categories(models.Model):
     title=models.CharField(max_length=255)
     createdAt = models.DateTimeField(auto_now_add=True)
@@ -48,7 +51,7 @@ class courses(models.Model):
     name=models.CharField(max_length=255)
     description=models.TextField(null=True , blank=True)
     cover = models.ImageField(null=True , blank=True)
-    href=models.CharField(max_length=255)
+    href=models.CharField(max_length=255,unique=True)
     categoryID=models.ForeignKey(categories,on_delete=models.PROTECT)
     creator=models.ForeignKey(User,on_delete=models.PROTECT,null=True,blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
@@ -97,8 +100,18 @@ class menus(models.Model):
     updatedAt = models.DateTimeField(auto_now=True)
     def __str__(self):
         return self.title
-        
-
+    
+class contact(models.Model):
+    name=models.CharField(max_length=255)
+    email= models.EmailField()
+    phone=models.CharField(max_length=11,null=True)
+    body=models.TextField()        
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    answer=models.BooleanField(default=False)
+    def __str__(self):
+        return self.name
+    
 class promotions(models.Model):
     description = models.CharField(max_length=255)
     discount = models.FloatField()
