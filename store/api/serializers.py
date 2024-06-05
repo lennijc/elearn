@@ -149,7 +149,6 @@ class AllCourseSerializer(serializers.ModelSerializer):
         exclude=["student"]
     def get_courseAverageScore(self,obj):
         average_score = comment.objects.filter(course=obj).aggregate(Avg("score"))
-        print(average_score)
         return int(average_score["score__avg"]) if average_score["score__avg"] else 5
     def get_registers(self,obj):
         courseStudentsCount=courseUser.objects.filter(course=obj).count()
@@ -160,7 +159,7 @@ class AllArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model=article
         exclude=["publish"]
-        
+
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = contact

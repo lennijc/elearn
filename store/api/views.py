@@ -172,3 +172,9 @@ class articleInfo(APIView):
             return Response({"DoesNotExist":f"course matching the query '{href}' does not exist"})
         serializer=articleInfoSerializer(single_article)
         return Response(serializer.data,status=status.HTTP_200_OK)
+
+class categorySubCourses(APIView):
+    def get(self,request,categoryName):
+        sub_courses = courses.objects.filter(categoryID__name=categoryName)
+        sub_courses_serializer=AllCourseSerializer(sub_courses,many=True)
+        return Response(sub_courses_serializer.data,status=status.HTTP_200_OK)
