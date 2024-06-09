@@ -13,7 +13,10 @@ from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
 from ..models import menus,courses,categories,article,courseUser
+from authentication.models import banUser
 from django.db import models
+from django.db import IntegrityError
+
 
 user = get_user_model()
 class RegisterView(APIView):
@@ -78,7 +81,7 @@ class searchApi(APIView):
         article_res=article.objects.filter(
             title__icontains=query)|article.objects.filter(
             description__icontains=query)|article.objects.filter(
-            shortName__icontains=query)
+            href__icontains=query)
         course_serializer=coursesSerializer(course_res,many=True)
         article_serializer=articleSerializer(article_res,many=True)
         return Response({"courses":course_serializer.data,"articles":article_serializer.data})
@@ -178,3 +181,16 @@ class categorySubCourses(APIView):
         sub_courses = courses.objects.filter(categoryID__name=categoryName)
         sub_courses_serializer=AllCourseSerializer(sub_courses,many=True)
         return Response(sub_courses_serializer.data,status=status.HTTP_200_OK)
+    
+
+class banUserApi(APIView):
+    permission_classes=[IsAdminUser]
+    def put(self,requeset,id):
+        ban_user=user.objects.get(id=id)
+        try:
+            banUser.objects.create(phone=ban_user.phone)
+        except IntegrityError:
+            return Response({"errorDetail":"maybe the user you are trying to ban has no phone number registered in the profile"})
+
+        serializer=UserSerializer(ban_user)
+        return Response({"bannedUserInfo":serializer.data})

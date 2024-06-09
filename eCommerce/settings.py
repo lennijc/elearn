@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'tags',
     'likes',
     'core',
+    'authentication',
+    
     'rest_framework',
 
     'rest_framework_simplejwt',
@@ -158,6 +160,7 @@ AUTH_USER_MODEL = "core.User"
 
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    'store.authentication.EmailAuthBackend',
+    'authentication.backends.CustomModelBackend',
+    'authentication.backends.EmailAuthBackend',
+    # 'django.contrib.auth.backends.ModelBackend',
 ]

@@ -58,7 +58,7 @@ class courses(models.Model):
     updatedAt = models.DateTimeField(auto_now=True)
     student = models.ManyToManyField(User,through="courseUser",through_fields=('course','user'),related_name="student_user")
     isComplete=models.BooleanField()
-    price=models.PositiveIntegerField(null=True,blank=True)
+    price=models.PositiveIntegerField(default=0)
     def __str__(self):
         return self.href
 
@@ -111,6 +111,8 @@ class contact(models.Model):
     answer=models.BooleanField(default=False)
     def __str__(self):
         return self.name
+    
+
     
 class promotions(models.Model):
     description = models.CharField(max_length=255)

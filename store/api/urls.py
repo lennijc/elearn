@@ -1,11 +1,11 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib import admin
 from django.urls import path
-from .views import RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,searchApi,NavbarApi,courseUserApi,course_info,commentApi,getAllCourses,presell,alluser,getPopularCourses,ContactUsView,articleInfo,getAllArticles,categorySubCourses
+from .views import RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,searchApi,NavbarApi,courseUserApi,course_info,commentApi,getAllCourses,presell,alluser,getPopularCourses,ContactUsView,articleInfo,getAllArticles,categorySubCourses,banUserApi
 
 urlpatterns = [
-    path("token/",TokenObtainPairView.as_view()),
-    path("token/refresh/",TokenRefreshView.as_view()),
+    path("token/",TokenObtainPairView.as_view(),name="login"),
+    path("token/refresh/",TokenRefreshView.as_view(),name="refreshToken"),
     path("signup/",RegisterView.as_view()),
     path("getme/",UserDetailView.as_view()),
     path("menus/",menu.as_view()),
@@ -24,4 +24,5 @@ urlpatterns = [
     path('users/', alluser.as_view(), name='allUsers'),
     path('courses/popular/', getPopularCourses.as_view(), name='getPopular'),
     path('contact/', ContactUsView.as_view(), name='contactUs'),
+    path('ban/<uuid:id>/', banUserApi.as_view(), name='banUser'),
 ]

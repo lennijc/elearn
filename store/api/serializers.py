@@ -43,7 +43,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         """
         password = data.get('password')
         confirmPassword = data.get('confirmPassword')
-
+        
         if password and confirmPassword and password != confirmPassword:
             raise serializers.ValidationError({"confirmPassword": "Passwords must match."})
 
