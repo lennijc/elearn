@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
-from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,ContactSerializer,articleInfoSerializer,AllArticleSerializer
+from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -194,3 +194,10 @@ class banUserApi(APIView):
 
         serializer=UserSerializer(ban_user)
         return Response({"bannedUserInfo":serializer.data})
+    
+class navbarWithSubMenu(APIView):
+    def get(self,request):
+        allCategories=categories.objects.all()
+        serializer=categorySubMenu(allCategories,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+        

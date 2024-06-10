@@ -172,3 +172,9 @@ class articleInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model=article
         fields="__all__"
+
+class categorySubMenu(serializers.ModelSerializer):
+    sub_menu=AllCourseSerializer(source="subMenu",many=True)
+    class Meta:
+        model=categories
+        fields="__all__"
