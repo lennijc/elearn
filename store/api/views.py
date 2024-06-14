@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
 from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
@@ -13,7 +13,7 @@ from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
 from ..models import menus,courses,categories,article,courseUser
-
+from django.db import models
 
 user = get_user_model()
 class RegisterView(APIView):
@@ -78,7 +78,7 @@ class searchApi(APIView):
         article_res=article.objects.filter(
             title__icontains=query)|article.objects.filter(
             description__icontains=query)|article.objects.filter(
-            shortName__icontains=query)
+            href__icontains=query)
         course_serializer=coursesSerializer(course_res,many=True)
         article_serializer=articleSerializer(article_res,many=True)
         return Response({"courses":course_serializer.data,"articles":article_serializer.data})
@@ -127,4 +127,25 @@ class getAllCourses(APIView):
         allCourses=courses.objects.all()
         serializer=AllCourseSerializer(allCourses,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
+    
+class presell(APIView):
+    def get(self,request):
+        presell_courses = courses.objects.filter(isComplete=0)
+        serializer=AllCourseSerializer(presell_courses,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
         
+class alluser(APIView):
+    permission_classes=[IsAdminUser]
+    def get(self,request):
+        all_users = user.objects.all()
+        all_user_serializer = UserSerializer(all_users,many=True)
+        return Response(all_user_serializer.data , status=status.HTTP_200_OK)
+
+class getPopularCourses(APIView):#base on the scores of each course
+    def get(self,request):
+        courses_with_scores =courses.objects.annotate(
+        average_score=models.Avg(
+            'comment__score', output_field=models.FloatField())).order_by('average_score')  # Ensure there are comment
+        print(courses_with_scores)
+        serializer=AllCourseSerializer(courses_with_scores,many=True)
+        return Response(serializer.data)
