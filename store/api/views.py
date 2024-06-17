@@ -12,10 +12,12 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
-from ..models import menus,courses,categories,article,courseUser
+from ..models import menus,courses,categories,article,courseUser,comment
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
+from rest_framework.generics import DestroyAPIView
+from rest_framework import viewsets
 
 
 user = get_user_model()
@@ -82,8 +84,8 @@ class searchApi(APIView):
             title__icontains=query)|article.objects.filter(
             description__icontains=query)|article.objects.filter(
             href__icontains=query)
-        course_serializer=coursesSerializer(course_res,many=True)
-        article_serializer=articleSerializer(article_res,many=True)
+        course_serializer=AllCourseSerializer(course_res,many=True)
+        article_serializer=AllArticleSerializer(article_res,many=True)
         return Response({"courses":course_serializer.data,"articles":article_serializer.data})
 
 class NavbarApi(APIView):
@@ -110,7 +112,7 @@ class course_info(APIView):
         serializer=courseInfoSerializer(course,context={"courseStudentsCount":courseStudentsCount,"isUserRegisteredToThisCourse":isUserRegisteredToThisCourse})
         return Response(serializer.data,status=status.HTTP_200_OK)
 
-class commentApi(APIView):
+class SendCommentApi(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self,request):
@@ -200,4 +202,22 @@ class navbarWithSubMenu(APIView):
         allCategories=categories.objects.all()
         serializer=categorySubMenu(allCategories,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
-        
+
+class deleteUserApi(DestroyAPIView):
+    queryset = user.objects.all()
+    permission_classes=[IsAdminUser]
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs) 
+
+class getAllComments(APIView):
+    def get(self,request):
+        all_comments = comment.objects.all()
+        comment_serializer = commentSerializer(all_comments,many=True)
+        return Response(comment_serializer.data,status=status.HTTP_200_OK)
+
+class categoryViewSet(viewsets.ModelViewSet):
+    queryset=categories.objects.all()
+    serializer_class=categorySerializer
+    
+
+    

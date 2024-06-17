@@ -180,8 +180,7 @@ class cartItem(models.Model):
     cart =  models.ForeignKey(cart , on_delete = models.CASCADE)
     product = models.ForeignKey(product , on_delete = models.CASCADE)
     quantity = models.PositiveSmallIntegerField()
-
-
+    
 
 
 

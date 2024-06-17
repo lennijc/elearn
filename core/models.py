@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 import uuid
 
+
 #get the role field base on the is_staff attribute of abstactUser to check if it is admin or normal user
 
 class User(AbstractUser):
@@ -24,6 +25,18 @@ class User(AbstractUser):
         'unique': "A user with that email already exists.",
     })
 
+class Order(models.Model):
+    course=models.ForeignKey("store.courses",on_delete=models.PROTECT)
+    user=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    price=models.PositiveIntegerField(default=0)
+    def __str__(self):
+        return  f"{self.course}"
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['course', 'user'], name='already ordered and registered'),
+        ]
     
     
     
