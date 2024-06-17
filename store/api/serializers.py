@@ -4,10 +4,11 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-from ..models import menus,courses,categories,article,courseUser,comment
+from ..models import menus,courses,categories,article,courseUser,comment,session,notification,contact
 from django.db.models import Avg
 User = get_user_model()
 
+#for a single article info 
 
 class articleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -42,7 +43,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         """
         password = data.get('password')
         confirmPassword = data.get('confirmPassword')
-
+        
         if password and confirmPassword and password != confirmPassword:
             raise serializers.ValidationError({"confirmPassword": "Passwords must match."})
 
@@ -76,10 +77,17 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["username"]=self.user.username
         data["phone"]=self.user.phone
         return data
+    
     def to_internal_value(self, data):
         return super().to_internal_value(data)
     
+class notificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=notification
+        fields="__all__"
+
 class UserSerializer(serializers.ModelSerializer):
+    notifications = notificationSerializer(source="notification_set",many=True,read_only=True)
     class Meta:
         model = User
         exclude = ['password'] #hashed password excluded
@@ -103,6 +111,13 @@ class commentSerializer(serializers.ModelSerializer):
     class Meta:
         model=comment
         fields="__all__"
+    def validate(self, data):
+        """
+        Check that either 'course' or 'article' is provided, but not both.
+        """
+        if data.get('course') and data.get('article'):
+            raise serializers.ValidationError("Either 'course' or 'article' must be provided, but not both.")
+        return data
 
 # class sessionSerializer(serializers.ModelSerializer):
 #     class Meta:
@@ -134,8 +149,32 @@ class AllCourseSerializer(serializers.ModelSerializer):
         exclude=["student"]
     def get_courseAverageScore(self,obj):
         average_score = comment.objects.filter(course=obj).aggregate(Avg("score"))
-        print(average_score)
         return int(average_score["score__avg"]) if average_score["score__avg"] else 5
     def get_registers(self,obj):
         courseStudentsCount=courseUser.objects.filter(course=obj).count()
         return courseStudentsCount
+
+class AllArticleSerializer(serializers.ModelSerializer):
+    creator=serializers.SlugRelatedField(read_only=True,slug_field="username")
+    class Meta:
+        model=article
+        exclude=["publish"]
+
+class ContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = contact
+        fields = ['name', 'email', 'phone',"body"]
+
+class articleInfoSerializer(serializers.ModelSerializer):
+    category=categorySerializer(read_only=True)
+    creator=UserSerializer(read_only=True)
+    comments=commentSerializer(source="comment_set",many=True,read_only=True)
+    class Meta:
+        model=article
+        fields="__all__"
+
+class categorySubMenu(serializers.ModelSerializer):
+    sub_menu=AllCourseSerializer(source="subMenu",many=True)
+    class Meta:
+        model=categories
+        fields="__all__"
