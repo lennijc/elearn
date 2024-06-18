@@ -1,7 +1,10 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib import admin
 from django.urls import path,include
-from .views import RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,searchApi,NavbarApi,courseUserApi,course_info,SendCommentApi,getAllCourses,presell,alluser,getPopularCourses,ContactUsView,articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,deleteUserApi,getAllComments,categoryViewSet
+from .views import (RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,searchApi,NavbarApi,
+courseUserApi,course_info,SendCommentApi,getAllCourses,presell,alluser,getPopularCourses,ContactUsView,
+articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,deleteUserApi,
+getAllComments,categoryViewSet,sendContactAnswer)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -32,4 +35,5 @@ urlpatterns = [
     path('navbar/', navbarWithSubMenu.as_view(), name='navbar'),
     path('deleteuser/<uuid:pk>/', deleteUserApi.as_view(), name='deleteUser'),
     path('',include(router.urls), name='categories'),
+    path('contact/answer/',sendContactAnswer.as_view(), name='answerContact'),
 ]

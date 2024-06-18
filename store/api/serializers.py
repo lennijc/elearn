@@ -185,3 +185,9 @@ class courseuser(serializers.ModelSerializer):
     class Meta:
         model=courseUser
         fields=["student","study","createdAt","updatedAt"]
+
+
+
+class EmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    message = serializers.CharField(max_length=500)

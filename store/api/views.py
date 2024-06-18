@@ -3,7 +3,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
-from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu
+from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
+    articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
+    ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -18,6 +20,7 @@ from django.db import models
 from django.db import IntegrityError
 from rest_framework.generics import DestroyAPIView
 from rest_framework import viewsets
+from store.tasks import send_notification_mail
 
 
 user = get_user_model()
@@ -218,6 +221,16 @@ class getAllComments(APIView):
 class categoryViewSet(viewsets.ModelViewSet):
     queryset=categories.objects.all()
     serializer_class=categorySerializer
-    
+
+
+class sendContactAnswer(APIView):
+    def post(self,request,*args,**kwargs):
+        serailizer=EmailSerializer(data=request.data)
+        email=serailizer.validated_data["email"]
+        message=serailizer.validated_data["answer"]
+        send_notification_mail(target_mail=email,message=message)
+        return Response({"email task queued"},status=status.HTTP_201_CREATED)
+
+
 
     

@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'rest_framework',
 
     'rest_framework_simplejwt',
-    'corsheaders'
+    'corsheaders',
+    'django_celery_results',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
@@ -164,3 +165,21 @@ AUTHENTICATION_BACKENDS = [
     'authentication.backends.EmailAuthBackend',
     # 'django.contrib.auth.backends.ModelBackend',
 ]
+
+# CELERY SETTINGS
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379'
+CELERY_ACCEPT_CONTENT = {'application/json'}
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Tehran'
+CELERY_RESULT_BACKEND = 'django-db'
+
+
+# SMTP SETTINGS
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_USE_TLS = True
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_HOST_USER = "onyourownsam@gmail.com"
+EMAIL_HOST_PASSWORD = "wtfd etbq hang jpbh"
+DEFAULT_FROM_EMAIL = 'Elearn'
