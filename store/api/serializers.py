@@ -4,14 +4,26 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-from ..models import menus,courses,categories,article
+from ..models import menus,courses,categories,article,courseUser,comment,session,notification,contact,orderModel
+from django.db.models import Avg
 User = get_user_model()
 
+#for a single article info 
+class sessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=session
+        fields="__all__"
+
+class ContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = contact
+        fields = ['name', 'email', 'phone',"body"]
 
 class articleSerializer(serializers.ModelSerializer):
     class Meta:
         model=article
         fields="__all__"
+
 class menuSerializer(serializers.ModelSerializer):
     class Meta:
         model=menus
@@ -26,6 +38,7 @@ class categorySerializer(serializers.ModelSerializer):
     class Meta:
         model=categories
         fields="__all__"
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True)
     class Meta:
@@ -39,7 +52,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         """
         password = data.get('password')
         confirmPassword = data.get('confirmPassword')
-
+        
         if password and confirmPassword and password != confirmPassword:
             raise serializers.ValidationError({"confirmPassword": "Passwords must match."})
 
@@ -65,9 +78,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-
-
-
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     token_class = RefreshToken
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, str]:
@@ -76,15 +86,119 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["username"]=self.user.username
         data["phone"]=self.user.phone
         return data
+    
     def to_internal_value(self, data):
         return super().to_internal_value(data)
-class UserSerializer(serializers.ModelSerializer):
+    
+class notificationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        exclude = ['password'] #hashed password excluded
+        model=notification
+        fields="__all__"
+
+
         
 class NavbarCategoriesSerializer(serializers.ModelSerializer):
     sub_menu=coursesSerializer(source="courses_set",many=True,read_only=True)
     class Meta:
         model=categories
         fields=["id","title","createdAt","updatedAt","name","sub_menu"]
+
+
+
+class commentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=comment
+        fields="__all__"
+    def validate(self, data):
+        """
+        Check that either 'course' or 'article' is provided, but not both.
+        """
+        if data.get('course') and data.get('article'):
+            raise serializers.ValidationError("Either 'course' or 'article' must be provided, but not both.")
+        return data
+
+# class sessionSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model=session
+#         fields="__all__"
+
+
+
+class AllCourseSerializer(serializers.ModelSerializer):
+    creator=serializers.SlugRelatedField(read_only=True,slug_field="username")
+    courseAverageScore=serializers.SerializerMethodField()
+    registers=serializers.SerializerMethodField()
+    class Meta:
+        model=courses
+        exclude=["student"]
+    def get_courseAverageScore(self,obj):
+        average_score = comment.objects.filter(course=obj).aggregate(Avg("score"))
+        return int(average_score["score__avg"]) if average_score["score__avg"] else 5
+    def get_registers(self,obj):
+        courseStudentsCount=courseUser.objects.filter(course=obj).count()
+        return courseStudentsCount
+    
+class UserSerializer(serializers.ModelSerializer):
+    notifications = notificationSerializer(source="notification_set",many=True,read_only=True)
+    courses = AllCourseSerializer(source="student_user",many=True)
+    class Meta:
+        model = User
+        exclude = ['password'] #hashed password excluded
+
+class AllArticleSerializer(serializers.ModelSerializer):
+    creator=serializers.SlugRelatedField(read_only=True,slug_field="username")
+    class Meta:
+        model=article
+        exclude=["publish"]
+
+class articleInfoSerializer(serializers.ModelSerializer):
+    category=categorySerializer(read_only=True)
+    creator=UserSerializer(read_only=True)
+    comments=commentSerializer(source="comment_set",many=True,read_only=True)
+    class Meta:
+        model=article
+        fields="__all__"
+
+class categorySubMenu(serializers.ModelSerializer):
+    sub_menu=AllCourseSerializer(source="subMenu",many=True)
+    class Meta:
+        model=categories
+        fields="__all__"
+
+class courseInfoSerializer(serializers.ModelSerializer):
+    categoryID=categorySerializer(read_only=True)
+    creator=UserSerializer(read_only=True)
+    comments=commentSerializer(source="comment_set",many=True,read_only=True)
+    sessions=sessionSerializer(source="session_set",many=True,read_only=True)
+    class Meta:
+        model=courses
+        exclude=["student"]
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        context = self.context
+        representation["courseStudentsCount"] = context["courseStudentsCount"]
+        representation["isUserRegisteredToThisCourse"] = context["isUserRegisteredToThisCourse"]
+        return representation
+
+class courseuser(serializers.ModelSerializer):
+    #student = coursesSerializer(source="student_user",many=True,read_only=True)
+    #course=coursesSerializer(source="course_set",many=True)
+    student=UserSerializer(source="user")
+    study=coursesSerializer(source="course")
+    class Meta:
+        model=courseUser
+        fields=["student","study","createdAt","updatedAt"]
+
+class orderSerializer(serializers.ModelSerializer):
+    course=AllCourseSerializer(read_only=True)
+    class Meta:
+        model=orderModel
+        fields="__all__"
+
+
+class EmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    message = serializers.CharField(max_length=500)
+    
+    
+

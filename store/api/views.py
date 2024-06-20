@@ -2,8 +2,10 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
-from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer
+from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
+from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
+    articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
+    ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,orderSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -12,7 +14,13 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
-from ..models import menus,courses,categories,article
+from ..models import menus,courses,categories,article,courseUser,comment,orderModel
+from authentication.models import banUser
+from django.db import models
+from django.db import IntegrityError
+from rest_framework.generics import DestroyAPIView,ListAPIView,RetrieveAPIView
+from rest_framework import viewsets
+from store.tasks import send_notification_mail
 
 
 user = get_user_model()
@@ -78,9 +86,9 @@ class searchApi(APIView):
         article_res=article.objects.filter(
             title__icontains=query)|article.objects.filter(
             description__icontains=query)|article.objects.filter(
-            shortName__icontains=query)
-        course_serializer=coursesSerializer(course_res,many=True)
-        article_serializer=articleSerializer(article_res,many=True)
+            href__icontains=query)
+        course_serializer=AllCourseSerializer(course_res,many=True)
+        article_serializer=AllArticleSerializer(article_res,many=True)
         return Response({"courses":course_serializer.data,"articles":article_serializer.data})
 
 class NavbarApi(APIView):
@@ -89,10 +97,151 @@ class NavbarApi(APIView):
         serializer=NavbarCategoriesSerializer(all_categories,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
+class courseUserApi(APIView):
+    def get(self,request):
+        all_courses=courseUser.objects.all()
+        serializer=courseuser(all_courses,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+class course_info(APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self,request,shortName):
+        courseStudentsCount=courseUser.objects.filter(course__href=shortName).count()
+        isUserRegisteredToThisCourse=True if courseUser.objects.filter(course__href=shortName,user=request.user) else False
+        try:
+            course=courses.objects.get(href=shortName)
+        except:
+            return Response({"DoesNotExist":f"course matching the query '{shortName}' does not exist"})
+        serializer=courseInfoSerializer(course,context={"courseStudentsCount":courseStudentsCount,"isUserRegisteredToThisCourse":isUserRegisteredToThisCourse})
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+class SendCommentApi(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self,request):
+        course_short_name = request.data.get('courseShortName')
+        try:
+            course = courses.objects.get(href=course_short_name)
+            request.data["course"]=course.id
+        except courses.DoesNotExist:
+            return Response({"error": "Course short name not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = commentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(course=course,creator=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class getAllCourses(APIView):
+    def get(self,request):
+        allCourses=courses.objects.all()
+        serializer=AllCourseSerializer(allCourses,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+class getAllArticles(APIView):
+    def get(self,request):
+        allarticles=article.objects.all()
+        serializer=AllArticleSerializer(allarticles,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+       
+class presell(APIView):
+    def get(self,request):
+        presell_courses = courses.objects.filter(isComplete=0)
+        serializer=AllCourseSerializer(presell_courses,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+        
+class alluser(APIView):
+    permission_classes=[IsAdminUser]
+    def get(self,request):
+        all_users = user.objects.all()
+        all_user_serializer = UserSerializer(all_users,many=True)
+        return Response(all_user_serializer.data , status=status.HTTP_200_OK)
+
+class getPopularCourses(APIView):#base on the scores of each course
+    def get(self,request):
+        courses_with_scores =courses.objects.annotate(
+        average_score=models.Avg(
+            'comment__score', output_field=models.FloatField())).order_by('average_score')  # Ensure there are comment
+        print(courses_with_scores)
+        serializer=AllCourseSerializer(courses_with_scores,many=True)
+        return Response(serializer.data)
+
+class ContactUsView(APIView):
+    def post(self, request, format=None):
+        serializer = ContactSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class articleInfo(APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self,request,href):
+        try:
+            single_article=article.objects.get(href=href)
+        except:
+            return Response({"DoesNotExist":f"course matching the query '{href}' does not exist"})
+        serializer=articleInfoSerializer(single_article)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+class categorySubCourses(APIView):
+    def get(self,request,categoryName):
+        sub_courses = courses.objects.filter(categoryID__name=categoryName)
+        sub_courses_serializer=AllCourseSerializer(sub_courses,many=True)
+        return Response(sub_courses_serializer.data,status=status.HTTP_200_OK)
     
 
+class banUserApi(APIView):
+    permission_classes=[IsAdminUser]
+    def put(self,requeset,id):
+        ban_user=user.objects.get(id=id)
+        try:
+            banUser.objects.create(phone=ban_user.phone)
+        except IntegrityError:
+            return Response({"errorDetail":"maybe the user you are trying to ban has no phone number registered in the profile"})
+
+        serializer=UserSerializer(ban_user)
+        return Response({"bannedUserInfo":serializer.data})
+    
+class navbarWithSubMenu(APIView):
+    def get(self,request):
+        allCategories=categories.objects.all()
+        serializer=categorySubMenu(allCategories,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+class deleteUserApi(DestroyAPIView):
+    queryset = user.objects.all()
+    permission_classes=[IsAdminUser]
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs) 
+
+class getAllComments(APIView):
+    def get(self,request):
+        all_comments = comment.objects.all()
+        comment_serializer = commentSerializer(all_comments,many=True)
+        return Response(comment_serializer.data,status=status.HTTP_200_OK)
+
+class categoryViewSet(viewsets.ModelViewSet):
+    queryset=categories.objects.all()
+    serializer_class=categorySerializer
 
 
-        
+class sendContactAnswer(APIView):
+    def post(self,request,*args,**kwargs):
+        serailizer=EmailSerializer(data=request.data)
+        email=serailizer.validated_data["email"]
+        message=serailizer.validated_data["answer"]
+        send_notification_mail(target_mail=email,message=message)
+        return Response({"email task queued"},status=status.HTTP_201_CREATED)
+    
+class orderlistApiView(ListAPIView):
+    permission_classes=[IsAuthenticated]
+    serializer_class=orderSerializer
+    def get_queryset(self):   
+        queryset = orderModel.objects.filter(user=self.request.user)
+        return queryset
+    
+class orderRetrieveApiView(RetrieveAPIView):
+    queryset=orderModel.objects.all()
+    serializer_class=orderSerializer
 
 
+
+    
