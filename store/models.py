@@ -110,6 +110,19 @@ class contact(models.Model):
     answer=models.BooleanField(default=False)
     def __str__(self):
         return self.name
+
+class orderModel(models.Model):
+    course=models.ForeignKey(courses,on_delete=models.PROTECT)
+    user=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    price=models.PositiveIntegerField(default=0)
+    def __str__(self):
+        return  f"{self.course}"
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['course', 'user'], name='already ordered and registered in this course'),
+        ]
     
 
     
@@ -179,8 +192,7 @@ class cartItem(models.Model):
     cart =  models.ForeignKey(cart , on_delete = models.CASCADE)
     product = models.ForeignKey(product , on_delete = models.CASCADE)
     quantity = models.PositiveSmallIntegerField()
-
-
+    
 
 
 

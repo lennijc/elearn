@@ -3,7 +3,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
-from .serializers import UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu
+from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
+    articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
+    ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,orderSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -12,10 +14,13 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
-from ..models import menus,courses,categories,article,courseUser
+from ..models import menus,courses,categories,article,courseUser,comment,orderModel
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
+from rest_framework.generics import DestroyAPIView,ListAPIView,RetrieveAPIView
+from rest_framework import viewsets
+from store.tasks import send_notification_mail
 
 
 user = get_user_model()
@@ -82,8 +87,8 @@ class searchApi(APIView):
             title__icontains=query)|article.objects.filter(
             description__icontains=query)|article.objects.filter(
             href__icontains=query)
-        course_serializer=coursesSerializer(course_res,many=True)
-        article_serializer=articleSerializer(article_res,many=True)
+        course_serializer=AllCourseSerializer(course_res,many=True)
+        article_serializer=AllArticleSerializer(article_res,many=True)
         return Response({"courses":course_serializer.data,"articles":article_serializer.data})
 
 class NavbarApi(APIView):
@@ -110,7 +115,7 @@ class course_info(APIView):
         serializer=courseInfoSerializer(course,context={"courseStudentsCount":courseStudentsCount,"isUserRegisteredToThisCourse":isUserRegisteredToThisCourse})
         return Response(serializer.data,status=status.HTTP_200_OK)
 
-class commentApi(APIView):
+class SendCommentApi(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self,request):
@@ -200,4 +205,43 @@ class navbarWithSubMenu(APIView):
         allCategories=categories.objects.all()
         serializer=categorySubMenu(allCategories,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
-        
+
+class deleteUserApi(DestroyAPIView):
+    queryset = user.objects.all()
+    permission_classes=[IsAdminUser]
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs) 
+
+class getAllComments(APIView):
+    def get(self,request):
+        all_comments = comment.objects.all()
+        comment_serializer = commentSerializer(all_comments,many=True)
+        return Response(comment_serializer.data,status=status.HTTP_200_OK)
+
+class categoryViewSet(viewsets.ModelViewSet):
+    queryset=categories.objects.all()
+    serializer_class=categorySerializer
+
+
+class sendContactAnswer(APIView):
+    def post(self,request,*args,**kwargs):
+        serailizer=EmailSerializer(data=request.data)
+        email=serailizer.validated_data["email"]
+        message=serailizer.validated_data["answer"]
+        send_notification_mail(target_mail=email,message=message)
+        return Response({"email task queued"},status=status.HTTP_201_CREATED)
+    
+class orderlistApiView(ListAPIView):
+    permission_classes=[IsAuthenticated]
+    serializer_class=orderSerializer
+    def get_queryset(self):   
+        queryset = orderModel.objects.filter(user=self.request.user)
+        return queryset
+    
+class orderRetrieveApiView(RetrieveAPIView):
+    queryset=orderModel.objects.all()
+    serializer_class=orderSerializer
+
+
+
+    

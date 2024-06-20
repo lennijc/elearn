@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 import uuid
 
+
 #get the role field base on the is_staff attribute of abstactUser to check if it is admin or normal user
 
 class User(AbstractUser):
