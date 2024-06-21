@@ -200,5 +200,16 @@ class EmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
     message = serializers.CharField(max_length=500)
     
-    
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    confirm_password = serializers.CharField(required=True)
+
+    def validate(self, data):
+        """
+        Check that the new password and its confirmation match.
+        """
+        if data['new_password']!= data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "The passwords do not match."})
+        return data    
 
