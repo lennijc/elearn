@@ -4,11 +4,13 @@ from django.urls import path,include
 from .views import (RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,searchApi,NavbarApi,
 courseUserApi,course_info,SendCommentApi,getAllCourses,presell,alluser,getPopularCourses,ContactUsView,
 articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,deleteUserApi,
-getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView)
+getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,
+ChangePasswordView,getMainPageInfo,coursesViewSet)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'categories', categoryViewSet)
+router.register(r'courses', coursesViewSet)
 urlpatterns = [
     path("token/",TokenObtainPairView.as_view(),name="login"),
     path("token/refresh/",TokenRefreshView.as_view(),name="refreshToken"),
@@ -34,9 +36,10 @@ urlpatterns = [
     path('ban/<uuid:id>/', banUserApi.as_view(), name='banUser'),
     path('navbar/', navbarWithSubMenu.as_view(), name='navbar'),
     path('deleteuser/<uuid:pk>/', deleteUserApi.as_view(), name='deleteUser'),
-    path('',include(router.urls), name='categories'),
+    path('ad/',include(router.urls), name='categories'),
     path('contact/answer/',sendContactAnswer.as_view(), name='answerContact'),
     path('order/',orderlistApiView.as_view(), name='listOrder'),
     path('order/<int:pk>/',orderRetrieveApiView.as_view(), name='singleOrder'),
     path('change_password/', ChangePasswordView.as_view(), name='change_password'),
+    path('main/', getMainPageInfo.as_view(), name='mainPage'),
 ]
