@@ -4,7 +4,7 @@ from django.urls import path,include
 from .views import (RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,searchApi,NavbarApi,
 courseUserApi,course_info,SendCommentApi,getAllCourses,presell,alluser,getPopularCourses,ContactUsView,
 articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,deleteUserApi,
-getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView)
+getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView,UserAPIView)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -39,4 +39,5 @@ urlpatterns = [
     path('order/',orderlistApiView.as_view(), name='listOrder'),
     path('order/<int:pk>/',orderRetrieveApiView.as_view(), name='singleOrder'),
     path('change_password/', ChangePasswordView.as_view(), name='change_password'),
+    path('user/profile/', UserAPIView.as_view(), name='updateProfiles'),
 ]

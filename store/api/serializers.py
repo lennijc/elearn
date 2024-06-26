@@ -211,5 +211,11 @@ class ChangePasswordSerializer(serializers.Serializer):
         """
         if data['new_password']!= data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "The passwords do not match."})
-        return data    
+        return data  
+
+
+class userProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'phone','name')
 

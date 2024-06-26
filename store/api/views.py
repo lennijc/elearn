@@ -5,7 +5,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
 from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
     articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
-    ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,orderSerializer)
+    ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
+    orderSerializer,userProfileSerializer,ChangePasswordSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -18,9 +19,11 @@ from ..models import menus,courses,categories,article,courseUser,comment,orderMo
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
-from rest_framework.generics import DestroyAPIView,ListAPIView,RetrieveAPIView,UpdateAPIView
+from rest_framework.generics import DestroyAPIView,ListAPIView,RetrieveAPIView,UpdateAPIView,RetrieveUpdateAPIView
 from rest_framework import viewsets
 from store.tasks import send_notification_mail
+from rest_framework import generics
+
 
 
 user = get_user_model()
@@ -243,15 +246,11 @@ class orderRetrieveApiView(RetrieveAPIView):
     serializer_class=orderSerializer
 
 # views.py
-from rest_framework import generics
-from rest_framework.response import Response
-from django.contrib.auth.models import User
-from.serializers import ChangePasswordSerializer
-from rest_framework.permissions import IsAuthenticated
+
 
 class ChangePasswordView(generics.UpdateAPIView):
     serializer_class = ChangePasswordSerializer
-    model = User
+    model = user
     permission_classes = (IsAuthenticated,)
 
     def get_object(self, queryset=None):
@@ -270,5 +269,8 @@ class ChangePasswordView(generics.UpdateAPIView):
             return Response({"message":"password changed successfully"},status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-    
+class UserAPIView(UpdateAPIView):
+    serializer_class = userProfileSerializer
+    permission_classes = (IsAuthenticated,)
+    def get_object(self):
+        return self.request.user
