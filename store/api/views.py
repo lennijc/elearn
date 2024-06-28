@@ -5,8 +5,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
 from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
     articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
-    ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
-    orderSerializer,userProfileSerializer,ChangePasswordSerializer)
+    ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,
+    EmailSerializer,orderSerializer,ChangePasswordSerializer,userProfileSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -15,15 +15,15 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
-from ..models import menus,courses,categories,article,courseUser,comment,orderModel
+from ..models import menus,courses,categories,article,courseUser,comment,orderModel,session
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
 from rest_framework.generics import DestroyAPIView,ListAPIView,RetrieveAPIView,UpdateAPIView,RetrieveUpdateAPIView
 from rest_framework import viewsets
 from store.tasks import send_notification_mail
-from rest_framework import generics
-
+from django.db.models import Sum
+from datetime import timedelta
 
 
 user = get_user_model()
@@ -222,6 +222,7 @@ class getAllComments(APIView):
         return Response(comment_serializer.data,status=status.HTTP_200_OK)
 
 class categoryViewSet(viewsets.ModelViewSet):
+    permission_classes=[IsAuthenticated]
     queryset=categories.objects.all()
     serializer_class=categorySerializer
 
@@ -229,8 +230,9 @@ class categoryViewSet(viewsets.ModelViewSet):
 class sendContactAnswer(APIView):
     def post(self,request,*args,**kwargs):
         serailizer=EmailSerializer(data=request.data)
+        serailizer.is_valid(raise_exception=True)
         email=serailizer.validated_data["email"]
-        message=serailizer.validated_data["answer"]
+        message=serailizer.validated_data["message"]
         send_notification_mail(target_mail=email,message=message)
         return Response({"email task queued"},status=status.HTTP_201_CREATED)
     
@@ -245,10 +247,8 @@ class orderRetrieveApiView(RetrieveAPIView):
     queryset=orderModel.objects.all()
     serializer_class=orderSerializer
 
-# views.py
 
-
-class ChangePasswordView(generics.UpdateAPIView):
+class ChangePasswordView(UpdateAPIView):
     serializer_class = ChangePasswordSerializer
     model = user
     permission_classes = (IsAuthenticated,)
@@ -263,7 +263,7 @@ class ChangePasswordView(generics.UpdateAPIView):
         if serializer.is_valid(raise_exception=True):
             old_password = serializer.validated_data.get("old_password")
             if not self.object.check_password(old_password):
-                return Response({"old_password": ["Wrong password."]}, status=400)
+                return Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
             self.object.set_password(serializer.validated_data.get("new_password"))
             self.object.save()
             return Response({"message":"password changed successfully"},status=status.HTTP_200_OK)
@@ -274,3 +274,35 @@ class UserAPIView(UpdateAPIView):
     permission_classes = (IsAuthenticated,)
     def get_object(self):
         return self.request.user
+    
+class getMainPageInfo(APIView):
+    def get(self,request):
+        _courses_count = courses.objects.all().count()
+        _total_sessions_time=session.objects.aggregate(total_time=Sum("time"))
+        total_duration_readable=0
+        if _total_sessions_time:
+            try:
+                total_duration_readable = str(timedelta(seconds=int(_total_sessions_time["total_time"].total_seconds())))
+                print(f"Total Duration (HH:MM:SS): {total_duration_readable}")
+            except AttributeError:
+                print("there is no session video in the site")
+        else:
+            print("No sessions found.")
+        _email="storino@gmail.com"
+        _phone="02199339339"
+        _users_count=user.objects.all().count()
+        _response_data={
+            "coursesCount":_courses_count,
+            "email":_email,
+            "phone":_phone,
+            "totalTime":int(_total_sessions_time["total_time"].total_seconds()/60),
+            "usersCount":_users_count,
+        }
+        return Response(_response_data,status=status.HTTP_200_OK)
+    
+
+class coursesViewSet(viewsets.ModelViewSet):
+    permission_classes=[IsAuthenticated]
+    queryset=courses.objects.all()
+    serializer_class=coursesSerializer
+
