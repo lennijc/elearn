@@ -228,6 +228,7 @@ class categoryViewSet(viewsets.ModelViewSet):
 
 
 class sendContactAnswer(APIView):
+    authentication_classes=[IsAdminUser]
     def post(self,request,*args,**kwargs):
         serailizer=EmailSerializer(data=request.data)
         serailizer.is_valid(raise_exception=True)
