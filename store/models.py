@@ -35,7 +35,7 @@ class article(models.Model):
     creator=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
-    publish=models.BooleanField()
+    publish=models.BooleanField(default=False)
     def __str__(self) -> str:
         return self.title
     
@@ -58,6 +58,7 @@ class courses(models.Model):
     student = models.ManyToManyField(User,through="courseUser",through_fields=('course','user'),related_name="student_user")
     isComplete=models.BooleanField()
     price=models.PositiveIntegerField(default=0)
+    support= models.CharField(max_length=255,default="telegram_group")
     def __str__(self):
         return self.href
 

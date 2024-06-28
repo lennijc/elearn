@@ -12,7 +12,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.exceptions import TokenError,InvalidToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework.generics import RetrieveAPIView
+from rest_framework.generics import RetrieveAPIView,CreateAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import IsAuthenticated
 from ..models import menus,courses,categories,article,courseUser,comment,orderModel,session
@@ -303,7 +303,32 @@ class getMainPageInfo(APIView):
     
 
 class coursesViewSet(viewsets.ModelViewSet):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAdminUser]
     queryset=courses.objects.all()
     serializer_class=coursesSerializer
+
+class articleViewSet(viewsets.ModelViewSet):
+    permission_classes=[IsAdminUser]
+    queryset=article.objects.all()
+    serializer_class=articleSerializer
+
+
+class createPublishArticle(CreateAPIView):
+    permission_classes=[IsAdminUser]
+    serializer_class=articleSerializer
+    queryset=article.objects.all()
+    def perform_create(self, serializer):
+        print(serializer.validated_data)
+        serializer.validated_data["publish"]=True
+        serializer.validated_data["creator"]=self.request.user
+        print(serializer.validated_data)
+        serializer.save()
+
+class createDraftArticle(CreateAPIView):
+    permission_classes=[IsAdminUser]
+    serializer_class=articleSerializer
+    queryset=article.objects.all()
+    def perform_create(self, serializer):
+        serializer.validated_data["creator"]=self.request.user
+        serializer.save()
 

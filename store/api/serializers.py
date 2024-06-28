@@ -20,6 +20,7 @@ class ContactSerializer(serializers.ModelSerializer):
         fields = ['name', 'email', 'phone',"body"]
 
 class articleSerializer(serializers.ModelSerializer):
+    creator=serializers.SlugRelatedField(read_only=True,slug_field="username")
     class Meta:
         model=article
         fields="__all__"
