@@ -20,10 +20,15 @@ class ContactSerializer(serializers.ModelSerializer):
         fields = ['name', 'email', 'phone',"body"]
 
 class articleSerializer(serializers.ModelSerializer):
+    creator=serializers.SlugRelatedField(read_only=True,slug_field="username")
     class Meta:
         model=article
         fields="__all__"
-
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if representation["category"]:
+            representation["category"]=instance.category.title
+        return representation
 class menuSerializer(serializers.ModelSerializer):
     class Meta:
         model=menus

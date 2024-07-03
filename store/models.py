@@ -4,6 +4,9 @@ from django.contrib.auth import get_user_model
 
 User=get_user_model()
 
+def dynamic_upload_to(instance,filename):
+    return f"{instance.__class__.__name__}/{instance.href}/{filename}"
+
 class comment(models.Model):
     body = models.TextField()
     course = models.ForeignKey("courses",on_delete=models.SET_NULL,null=True,blank=True)
@@ -29,13 +32,13 @@ class article(models.Model):
     title=models.CharField(max_length=255)
     description=models.TextField()
     body=models.CharField(max_length=255)
-    cover=models.ImageField(null=True,blank=True)
+    cover=models.ImageField(upload_to=dynamic_upload_to,null=True,blank=True)
     href=models.CharField(max_length=255,unique=True)
     category=models.ForeignKey("categories",on_delete=models.PROTECT)
     creator=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
-    publish=models.BooleanField()
+    publish=models.BooleanField(default=False)
     def __str__(self) -> str:
         return self.title
     
@@ -46,10 +49,11 @@ class categories(models.Model):
     name=models.CharField(max_length=255)
     def __str__(self):
         return self.title
+
 class courses(models.Model):
     name=models.CharField(max_length=255)
     description=models.TextField(null=True , blank=True)
-    cover = models.ImageField(null=True , blank=True)
+    cover = models.ImageField(upload_to=dynamic_upload_to,null=True , blank=True)
     href=models.CharField(max_length=255,unique=True)
     categoryID=models.ForeignKey(categories,on_delete=models.PROTECT,related_name="subMenu")
     creator=models.ForeignKey(User,on_delete=models.PROTECT,null=True,blank=True)
@@ -58,6 +62,7 @@ class courses(models.Model):
     student = models.ManyToManyField(User,through="courseUser",through_fields=('course','user'),related_name="student_user")
     isComplete=models.BooleanField()
     price=models.PositiveIntegerField(default=0)
+    support= models.CharField(max_length=255,default="telegram_group")
     def __str__(self):
         return self.href
 

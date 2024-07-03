@@ -12,10 +12,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'playground',
     'store',
     'tags',
     'likes',
@@ -183,3 +182,7 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = "onyourownsam@gmail.com"
 EMAIL_HOST_PASSWORD = "wtfd etbq hang jpbh"
 DEFAULT_FROM_EMAIL = 'Elearn'
+
+#media setup
+MEDIA_URL="/media/"
+MEDIA_ROOT= os.path.join(BASE_DIR,'media/')
