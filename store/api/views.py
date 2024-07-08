@@ -229,7 +229,7 @@ class categoryViewSet(viewsets.ModelViewSet):
 
 
 class sendContactAnswer(APIView):
-    authentication_classes=[IsAdminUser]
+    permission_classes=[IsAuthenticated]
     def post(self,request,*args,**kwargs):
         serailizer=EmailSerializer(data=request.data)
         serailizer.is_valid(raise_exception=True)
@@ -318,7 +318,6 @@ class createPublishArticle(CreateAPIView):
     permission_classes=[IsAdminUser]
     serializer_class=articleSerializer
     queryset=article.objects.all().select_related("category")
-    print(queryset)
     parser_classes=[MultiPartParser]
     def perform_create(self, serializer):
         serializer.validated_data["publish"]=True

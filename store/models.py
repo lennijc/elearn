@@ -17,13 +17,13 @@ class comment(models.Model):
     answer=models.IntegerField()
     isAnswer=models.BooleanField()
     SCORE_CHOICES=[
-        ("1","one"),
-        ("2","two"),
-        ("3","three"),
-        ("4","four"),
-        ("5","five"),
+        (1,"one"),
+        (2,"two"),
+        (3,"three"),
+        (4,"four"),
+        (5,"five"),
     ]
-    score=models.CharField(max_length=1,choices=SCORE_CHOICES)
+    score=models.SmallIntegerField(choices=SCORE_CHOICES)
     def __str__(self) -> str:
         return str(self.creator)
 
