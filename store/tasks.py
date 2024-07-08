@@ -4,7 +4,7 @@ from eCommerce import settings
 
 @shared_task(bind=True)
 def send_notification_mail(self, target_mail, message):
-    mail_subject = "thank you for your message"
+    mail_subject = "answer to your application from Elearn!"
     send_mail(
         subject = mail_subject,
         message=message,

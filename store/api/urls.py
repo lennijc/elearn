@@ -5,7 +5,7 @@ from .views import (RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,se
 courseUserApi,course_info,SendCommentApi,getAllCourses,presell,alluser,getPopularCourses,ContactUsView,
 articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,deleteUserApi,
 getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView,
-UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,createDraftArticle)
+UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,createDraftArticle,changeUserRole)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -46,4 +46,5 @@ urlpatterns = [
     path('main/', getMainPageInfo.as_view(), name='mainPage'),
     path("article/publish/",createPublishArticle.as_view(),name="publishArticle"),
     path("article/draft/",createDraftArticle.as_view(),name="draftArticle"),
+    path("user/role/",changeUserRole.as_view(),name="changeRole"),
 ]

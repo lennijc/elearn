@@ -235,7 +235,7 @@ class sendContactAnswer(APIView):
         serailizer.is_valid(raise_exception=True)
         email=serailizer.validated_data["email"]
         message=serailizer.validated_data["message"]
-        send_notification_mail(target_mail=email,message=message)
+        send_notification_mail.delay(email,message)
         return Response({"email task queued"},status=status.HTTP_201_CREATED)
     
 class orderlistApiView(ListAPIView):
@@ -307,6 +307,13 @@ class coursesViewSet(viewsets.ModelViewSet):
     permission_classes=[IsAdminUser]
     queryset=courses.objects.all()
     serializer_class=coursesSerializer
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+        except Exception as e:
+            return Response({"course deletion didn't happen likely they are student already enrolled in this course":str(e)},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"successfully done"},status=status.HTTP_202_ACCEPTED)
 
 class articleViewSet(viewsets.ModelViewSet):
     permission_classes=[IsAdminUser]
@@ -332,4 +339,24 @@ class createDraftArticle(CreateAPIView):
     def perform_create(self, serializer):
         serializer.validated_data["creator"]=self.request.user
         serializer.save()
+    
+class changeUserRole(APIView):
+    def put(self, request, format=None):
+        user_id = request.data.get('id')  # Extract user ID from request data
+        try:
+            instance = user.objects.get(id=user_id)  # Fetch user instance
+        except user.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        print("request.data is : " , request.data)
+        serializer = UserSerializer(instance=instance,data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.update(instance, serializer.validated_data)
+        print(serializer.data)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+        
+        
+    
+
+    
+         
 

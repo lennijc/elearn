@@ -150,6 +150,15 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         exclude = ['password'] #hashed password excluded
 
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        if 'role' in validated_data:
+            if validated_data['role'] == 'ADMIN':
+                instance.is_staff = True
+            else:
+                instance.is_staff = False
+        instance.save()
+
 class AllArticleSerializer(serializers.ModelSerializer):
     creator=serializers.SlugRelatedField(read_only=True,slug_field="username")
     class Meta:

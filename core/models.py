@@ -1,3 +1,4 @@
+from typing import Iterable
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 # from phonenumber_field.modelfields import PhoneNumberField
@@ -24,6 +25,11 @@ class User(AbstractUser):
     email = models.EmailField(unique=True, error_messages={
         'unique': "A user with that email already exists.",
     })
+    def save(self, *args, **kwargs):
+        if self.is_staff:
+            self.role = 'admin'
+        super().save(*args, **kwargs)
+
 
     
     
