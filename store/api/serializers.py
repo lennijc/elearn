@@ -26,6 +26,7 @@ class articleSerializer(serializers.ModelSerializer):
         fields="__all__"
     def to_representation(self, instance):
         representation = super().to_representation(instance)
+        print("instance is: " ,instance ,"type of intsnce is: " , type(instance), "and represesntion is: " , representation)
         if representation["category"]:
             representation["category"]=instance.category.title
         return representation
@@ -111,6 +112,20 @@ class NavbarCategoriesSerializer(serializers.ModelSerializer):
 
 
 class commentSerializer(serializers.ModelSerializer):
+    creator=serializers.SlugRelatedField(slug_field="name",read_only=True)
+    course=serializers.SlugRelatedField(slug_field="name",read_only=True)
+    class Meta:
+        model=comment
+        fields="__all__"
+    def validate(self, data):
+        """
+        Check that either 'course' or 'article' is provided, but not both.
+        """
+        if data.get('course') and data.get('article'):
+            raise serializers.ValidationError("Either 'course' or 'article' must be provided, but not both.")
+        return data
+    
+class answerCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model=comment
         fields="__all__"
@@ -163,7 +178,7 @@ class AllArticleSerializer(serializers.ModelSerializer):
     creator=serializers.SlugRelatedField(read_only=True,slug_field="username")
     class Meta:
         model=article
-        exclude=["publish"]
+        fields="__all__"
 
 class articleInfoSerializer(serializers.ModelSerializer):
     category=categorySerializer(read_only=True)

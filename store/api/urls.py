@@ -5,13 +5,15 @@ from .views import (RegisterView,UserDetailView,menu,topbarmenu,categoriesApi,se
 courseUserApi,course_info,SendCommentApi,getAllCourses,presell,alluser,getPopularCourses,ContactUsView,
 articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,deleteUserApi,
 getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView,
-UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,createDraftArticle,changeUserRole)
+UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
+createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'categories', categoryViewSet)
 router.register(r'courses', coursesViewSet)
 router.register(r'articles', articleViewSet)
+router.register(r'comments', commentViewSet,basename="answerComment")
 urlpatterns = [
     path("token/",TokenObtainPairView.as_view(),name="login"),
     path("token/refresh/",TokenRefreshView.as_view(),name="refreshToken"),
@@ -26,10 +28,10 @@ urlpatterns = [
     path('courseinfo/<str:shortName>/', course_info.as_view(), name='course-info'),
     path('articleinfo/<str:href>/', articleInfo.as_view(), name='article-info'),
     path('category/<str:categoryName>/', categorySubCourses.as_view(), name='categorySubCourses'),
-    path('comments/', SendCommentApi.as_view(), name='comment'),
+    path('comments/', SendCommentApi.as_view(), name='sendComment'),
     path('allcourses/', getAllCourses.as_view(), name='allcourses'),
     path('allarticles/', getAllArticles.as_view(), name='allarticles'),
-    path('allcomment/', getAllComments.as_view(), name='allcomment'),
+    path('allcomment/', getAllComments.as_view(), name='getAllComments'),
     path('courses/presell/', presell.as_view(), name='presell'),
     path('users/', alluser.as_view(), name='allUsers'),
     path('courses/popular/', getPopularCourses.as_view(), name='getPopular'),
@@ -47,4 +49,5 @@ urlpatterns = [
     path("article/publish/",createPublishArticle.as_view(),name="publishArticle"),
     path("article/draft/",createDraftArticle.as_view(),name="draftArticle"),
     path("user/role/",changeUserRole.as_view(),name="changeRole"),
+    path("article/publishdraft/<str:href>/",publishDraftArticle.as_view(),name="publishDraft"),
 ]

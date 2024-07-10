@@ -9,9 +9,9 @@ def dynamic_upload_to(instance,filename):
 
 class comment(models.Model):
     body = models.TextField()
-    course = models.ForeignKey("courses",on_delete=models.SET_NULL,null=True,blank=True)
-    article = models.ForeignKey("article",on_delete=models.SET_NULL,null=True,blank=True)
-    creator = models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
+    course = models.ForeignKey("courses",on_delete=models.CASCADE,default=None,null=True,blank=True)
+    article = models.ForeignKey("article",on_delete=models.CASCADE,default=None,null=True,blank=True)
+    creator = models.ForeignKey(User,on_delete=models.CASCADE)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     answer=models.IntegerField()
@@ -24,6 +24,7 @@ class comment(models.Model):
         (5,"five"),
     ]
     score=models.SmallIntegerField(choices=SCORE_CHOICES)
+    mainCommentID=models.ForeignKey('self',null=True,blank=True,on_delete=models.CASCADE,related_name="replies")
     def __str__(self) -> str:
         return str(self.creator)
 

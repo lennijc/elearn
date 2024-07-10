@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
 from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
     articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,
-    EmailSerializer,orderSerializer,ChangePasswordSerializer,userProfileSerializer)
+    EmailSerializer,orderSerializer,ChangePasswordSerializer,userProfileSerializer,answerCommentSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -25,6 +25,8 @@ from store.tasks import send_notification_mail
 from django.db.models import Sum
 from datetime import timedelta
 from rest_framework.parsers import MultiPartParser
+from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
 
 
 user = get_user_model()
@@ -307,12 +309,13 @@ class coursesViewSet(viewsets.ModelViewSet):
     permission_classes=[IsAdminUser]
     queryset=courses.objects.all()
     serializer_class=coursesSerializer
+    parser_classes=[MultiPartParser]
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         try:
             self.perform_destroy(instance)
         except Exception as e:
-            return Response({"course deletion didn't happen likely they are student already enrolled in this course":str(e)},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"course deletion didn't happen likely they are students already enrolled in this course":str(e)},status=status.HTTP_400_BAD_REQUEST)
         return Response({"message":"successfully done"},status=status.HTTP_202_ACCEPTED)
 
 class articleViewSet(viewsets.ModelViewSet):
@@ -324,12 +327,16 @@ class articleViewSet(viewsets.ModelViewSet):
 class createPublishArticle(CreateAPIView):
     permission_classes=[IsAdminUser]
     serializer_class=articleSerializer
-    queryset=article.objects.all().select_related("category")
     parser_classes=[MultiPartParser]
     def perform_create(self, serializer):
         serializer.validated_data["publish"]=True
         serializer.validated_data["creator"]=self.request.user
+        #print("serialzier.data is :",serializer.data)
+        print("serialzier.validateddata is :",serializer.validated_data)
         serializer.save()
+    
+    def get_queryset(self):
+        return article.objects.all().select_related("category")
         
 
 class createDraftArticle(CreateAPIView):
@@ -353,10 +360,50 @@ class changeUserRole(APIView):
         serializer.update(instance, serializer.validated_data)
         print(serializer.data)
         return Response(serializer.data,status=status.HTTP_200_OK)
-        
-        
-    
 
+class publishDraftArticle(UpdateAPIView):
+    queryset = article.objects.all()
+    serializer_class = articleSerializer
+    permission_classes=[IsAdminUser]
+    parser_classes=[MultiPartParser]
+    def get_object(self):
+        print("self.kwargs is : " , self.kwargs , "and args is: ",self.args)
+        print("self.request is : " , self.request)
+        href = self.kwargs['href']
+        try:
+            return article.objects.get(href=href)
+        except article.DoesNotExist:
+            return None
+
+    def perform_update(self, serializer):
+        serializer.save(publish=True)
     
-         
+class commentViewSet(viewsets.ModelViewSet):
+    serializer_class=answerCommentSerializer
+    permission_classes=[IsAdminUser]
+    queryset=comment.objects.all()
+    
+    @action(detail=True, methods=["post"])
+    def answerComment(self, request, *args, **kwargs):
+        mainCommentID = self.kwargs["pk"]
+        mainCommentInstance = get_object_or_404(comment, pk=mainCommentID)
+        # also we could add the new comment data to the request.data and pass the data to the self.create(request)
+        #the answer has to inherit the course or article from the mainCommentInstance as this is an answer to that mainComment
+        answer_comment_data = {
+            "mainCommentID": mainCommentID,
+            "creator": request.user.id, 
+            "body":request.data["body"],
+            "course": mainCommentInstance.course_id,  
+            "article": mainCommentInstance.article_id,
+            "answer": 1,
+            "isAnswer": True,
+            "score": 5,
+        }
+        serializer = self.get_serializer(data=answer_comment_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
 
