@@ -64,6 +64,7 @@ class courses(models.Model):
     isComplete=models.BooleanField()
     price=models.PositiveIntegerField(default=0)
     support= models.CharField(max_length=255,default="telegram_group")
+    discount=models.PositiveSmallIntegerField(default=0)
     def __str__(self):
         return self.href
 
@@ -129,9 +130,20 @@ class orderModel(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['course', 'user'], name='already ordered and registered in this course'),
         ]
+        
+class off(models.Model):
+    code = models.CharField(max_length=12)
+    percent=models.PositiveSmallIntegerField()
+    course=models.ForeignKey(courses,on_delete=models.CASCADE)
+    max=models.PositiveSmallIntegerField()
+    uses=models.PositiveSmallIntegerField(default=0)
+    creator=models.ForeignKey(User,on_delete=models.CASCADE)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return str(self.percent) + "%" " " +  str(self.course.name)
     
-
-    
+#--------------------------------------------------other model for an ecommerce--------------------------------
 class promotions(models.Model):
     description = models.CharField(max_length=255)
     discount = models.FloatField()
@@ -190,6 +202,9 @@ class Address(models.Model):
     zip = models.CharField(max_length=10 , null=True)
     
 
+    
+    
+    
 
 class cart(models.Model):
     created_at = models.DateTimeField(auto_now_add = True)
@@ -198,6 +213,8 @@ class cartItem(models.Model):
     cart =  models.ForeignKey(cart , on_delete = models.CASCADE)
     product = models.ForeignKey(product , on_delete = models.CASCADE)
     quantity = models.PositiveSmallIntegerField()
+    
+    
     
 
 

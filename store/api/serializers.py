@@ -4,11 +4,21 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-from ..models import menus,courses,categories,article,courseUser,comment,session,notification,contact,orderModel
+from ..models import menus,courses,categories,article,courseUser,comment,session,notification,contact,orderModel,off
 from django.db.models import Avg
 User = get_user_model()
 
 #for a single article info 
+class simpleUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=User
+        exclude=["password"]
+
+class simpleCommentSerialzier(serializers.ModelSerializer):
+    creator=simpleUserSerializer(read_only=True)
+    class Meta:
+        model=comment
+        fields="__all__"
 class sessionSerializer(serializers.ModelSerializer):
     class Meta:
         model=session
@@ -112,7 +122,8 @@ class NavbarCategoriesSerializer(serializers.ModelSerializer):
 
 
 class commentSerializer(serializers.ModelSerializer):
-    creator=serializers.SlugRelatedField(slug_field="name",read_only=True)
+    creator=simpleUserSerializer(read_only=True)
+    mainCommentID=simpleCommentSerialzier(read_only=True)
     course=serializers.SlugRelatedField(slug_field="name",read_only=True)
     class Meta:
         model=comment
@@ -247,4 +258,10 @@ class userProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name', 'phone','name')
+        
+
+class offSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=off
+        fields="__all__"
 

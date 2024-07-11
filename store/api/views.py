@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
 from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
     articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,
-    EmailSerializer,orderSerializer,ChangePasswordSerializer,userProfileSerializer,answerCommentSerializer)
+    EmailSerializer,orderSerializer,ChangePasswordSerializer,userProfileSerializer,answerCommentSerializer,offSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -14,8 +14,8 @@ from rest_framework_simplejwt.exceptions import TokenError,InvalidToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView,CreateAPIView
 from django.contrib.auth import authenticate, get_user_model
-from rest_framework.permissions import IsAuthenticated
-from ..models import menus,courses,categories,article,courseUser,comment,orderModel,session
+from rest_framework.permissions import IsAuthenticated,IsAuthenticatedOrReadOnly,IsAdminUser
+from ..models import menus,courses,categories,article,courseUser,comment,orderModel,session,off
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
@@ -110,7 +110,7 @@ class courseUserApi(APIView):
         return Response(serializer.data,status=status.HTTP_200_OK)
 
 class course_info(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticatedOrReadOnly]
     def get(self,request,shortName):
         courseStudentsCount=courseUser.objects.filter(course__href=shortName).count()
         isUserRegisteredToThisCourse=True if courseUser.objects.filter(course__href=shortName,user=request.user) else False
@@ -178,7 +178,7 @@ class ContactUsView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class articleInfo(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticatedOrReadOnly]
     def get(self,request,href):
         try:
             single_article=article.objects.get(href=href)
@@ -377,6 +377,7 @@ class publishDraftArticle(UpdateAPIView):
 
     def perform_update(self, serializer):
         serializer.save(publish=True)
+        
     
 class commentViewSet(viewsets.ModelViewSet):
     serializer_class=answerCommentSerializer
@@ -421,6 +422,32 @@ class commentViewSet(viewsets.ModelViewSet):
             return Response(serializer.data,status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class offViewset(viewsets.ModelViewSet):
+    permission_classes=[IsAdminUser]
+    serializer_class=offSerializer
+    queryset=off.objects.all()
+    def create(self, request, *args, **kwargs):
+        #we dont send the client the creator so we should set that here before passing it to the serialzier and getting error
+        request.data["creator"]=request.user.id
+        return super().create(request, *args, **kwargs)
+    
+class UpdateDiscountAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        try:
+            discount_percentage=int(request.data["discount"])
+            if discount_percentage>100 or discount_percentage<0:
+                return Response({"error":"discount has to be between 0 to 100"},status=status.HTTP_400_BAD_REQUEST)
+            # Update all courses with the new discount percentage
+            courses.objects.update(discount=discount_percentage)
+            
+            return Response({"message": f"All courses updated with discount: {discount_percentage}%"}, status=status.HTTP_200_OK)
+        except (ValueError,KeyError):
+            return Response({"error": "Invalid discount percentage"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+
+    
     
     
     

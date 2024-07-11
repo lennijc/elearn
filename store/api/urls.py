@@ -6,7 +6,7 @@ courseUserApi,course_info,SendCommentApi,getAllCourses,presell,alluser,getPopula
 articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,deleteUserApi,
 getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView,
 UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
-createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet)
+createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,UpdateDiscountAPIView)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -14,6 +14,7 @@ router.register(r'categories', categoryViewSet)
 router.register(r'courses', coursesViewSet)
 router.register(r'articles', articleViewSet)
 router.register(r'comments', commentViewSet,basename="answerComment")
+router.register(r'offs', offViewset,basename="discountCode")
 urlpatterns = [
     path("token/",TokenObtainPairView.as_view(),name="login"),
     path("token/refresh/",TokenRefreshView.as_view(),name="refreshToken"),
@@ -28,7 +29,7 @@ urlpatterns = [
     path('courseinfo/<str:shortName>/', course_info.as_view(), name='course-info'),
     path('articleinfo/<str:href>/', articleInfo.as_view(), name='article-info'),
     path('category/<str:categoryName>/', categorySubCourses.as_view(), name='categorySubCourses'),
-    path('comments/', SendCommentApi.as_view(), name='sendComment'),
+    path('comment/', SendCommentApi.as_view(), name='sendComment'),
     path('allcourses/', getAllCourses.as_view(), name='allcourses'),
     path('allarticles/', getAllArticles.as_view(), name='allarticles'),
     path('allcomment/', getAllComments.as_view(), name='getAllComments'),
@@ -50,4 +51,5 @@ urlpatterns = [
     path("article/draft/",createDraftArticle.as_view(),name="draftArticle"),
     path("user/role/",changeUserRole.as_view(),name="changeRole"),
     path("article/publishdraft/<str:href>/",publishDraftArticle.as_view(),name="publishDraft"),
+    path("off/all/",UpdateDiscountAPIView.as_view(),name="allCoursesDiscount"),
 ]
