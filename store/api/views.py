@@ -387,6 +387,8 @@ class commentViewSet(viewsets.ModelViewSet):
     def answerComment(self, request, *args, **kwargs):
         mainCommentID = self.kwargs["pk"]
         mainCommentInstance = get_object_or_404(comment, pk=mainCommentID)
+        mainCommentInstance.answer=1
+        
         # also we could add the new comment data to the request.data and pass the data to the self.create(request)
         #the answer has to inherit the course or article from the mainCommentInstance as this is an answer to that mainComment
         answer_comment_data = {
@@ -404,6 +406,25 @@ class commentViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    #accepting comment mean that we set the answer field of comment instance to one and will be visible in the client side
+    @action(methods=['put'], detail=True)
+    def accept_reject_comment(self, request,*args,**kwargs):
+        """
+        Toggle the 'answer' field of a comment.
+        """
+        try:
+            comment = self.get_object()
+            comment.answer = not comment.answer  # Toggle the answer field
+            comment.save()
+            serializer=commentSerializer(comment)
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    
+    
 
 
 
