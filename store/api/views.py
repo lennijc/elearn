@@ -19,7 +19,7 @@ from ..models import menus,courses,categories,article,courseUser,comment,orderMo
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
-from rest_framework.generics import DestroyAPIView,ListAPIView,RetrieveAPIView,UpdateAPIView,RetrieveUpdateAPIView
+from rest_framework.generics import DestroyAPIView,ListAPIView,RetrieveAPIView,UpdateAPIView
 from rest_framework import viewsets
 from store.tasks import send_notification_mail
 from django.db.models import Sum
@@ -27,6 +27,7 @@ from datetime import timedelta
 from rest_framework.parsers import MultiPartParser
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
+
 
 
 user = get_user_model()
@@ -444,6 +445,25 @@ class UpdateDiscountAPIView(APIView):
             return Response({"message": f"All courses updated with discount: {discount_percentage}%"}, status=status.HTTP_200_OK)
         except (ValueError,KeyError):
             return Response({"error": "Invalid discount percentage"}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class retrieveDraftArticle(RetrieveAPIView):
+    queryset=article.objects.all()
+    serializer_class=articleSerializer
+    permission_classes=[IsAdminUser]
+    def get_object(self):
+        # Extract 'href' from the URL path
+        href = self.kwargs.get('href', None)
+        
+        if not href:
+            raise ValueError("Expected 'href' in URL parameters")
+        
+        article_instance = get_object_or_404(article,href=href)
+        
+        return article_instance
+    
+    
+    
     
     
 
