@@ -36,14 +36,23 @@ class articleSerializer(serializers.ModelSerializer):
         fields="__all__"
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        print("instance is: " ,instance ,"type of intsnce is: " , type(instance), "and represesntion is: " , representation)
         if representation["category"]:
             representation["category"]=instance.category.title
         return representation
+
+class simpleMenuSerializer(serializers.ModelSerializer):
+    class Meta:
+        model =menus
+        fields="__all__"
 class menuSerializer(serializers.ModelSerializer):
+    parent=serializers.SerializerMethodField()
     class Meta:
         model=menus
         fields="__all__"
+    def get_parent(self,obj):
+        if obj.parent:
+            return obj.parent.title
+        return None
 class coursesSerializer(serializers.ModelSerializer):
     creator=serializers.StringRelatedField()
     class Meta:
@@ -123,8 +132,9 @@ class NavbarCategoriesSerializer(serializers.ModelSerializer):
 
 class commentSerializer(serializers.ModelSerializer):
     creator=simpleUserSerializer(read_only=True)
-    mainCommentID=simpleCommentSerialzier(read_only=True)
+    #mainCommentID=simpleCommentSerialzier(read_only=True)
     course=serializers.SlugRelatedField(slug_field="name",read_only=True)
+    answerContent=simpleCommentSerialzier(source="replies",many=True,read_only=True)
     class Meta:
         model=comment
         fields="__all__"
@@ -136,6 +146,11 @@ class commentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Either 'course' or 'article' must be provided, but not both.")
         return data
     
+class simpleCourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=courses
+        fields="__all__"
+        
 class answerCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model=comment
@@ -152,7 +167,6 @@ class answerCommentSerializer(serializers.ModelSerializer):
 #     class Meta:
 #         model=session
 #         fields="__all__"
-
 
 
 class AllCourseSerializer(serializers.ModelSerializer):

@@ -5,8 +5,9 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
 from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
     articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
-    ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,
-    EmailSerializer,orderSerializer,ChangePasswordSerializer,userProfileSerializer,answerCommentSerializer,offSerializer)
+    ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
+    orderSerializer,ChangePasswordSerializer,userProfileSerializer,
+    answerCommentSerializer,offSerializer,sessionSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -332,8 +333,6 @@ class createPublishArticle(CreateAPIView):
     def perform_create(self, serializer):
         serializer.validated_data["publish"]=True
         serializer.validated_data["creator"]=self.request.user
-        #print("serialzier.data is :",serializer.data)
-        print("serialzier.validateddata is :",serializer.validated_data)
         serializer.save()
     
     def get_queryset(self):
@@ -390,7 +389,7 @@ class commentViewSet(viewsets.ModelViewSet):
         mainCommentID = self.kwargs["pk"]
         mainCommentInstance = get_object_or_404(comment, pk=mainCommentID)
         mainCommentInstance.answer=1
-        
+        mainCommentInstance.save()
         # also we could add the new comment data to the request.data and pass the data to the self.create(request)
         #the answer has to inherit the course or article from the mainCommentInstance as this is an answer to that mainComment
         answer_comment_data = {
@@ -454,15 +453,24 @@ class retrieveDraftArticle(RetrieveAPIView):
     def get_object(self):
         # Extract 'href' from the URL path
         href = self.kwargs.get('href', None)
-        
         if not href:
             raise ValueError("Expected 'href' in URL parameters")
         
         article_instance = get_object_or_404(article,href=href)
-        
         return article_instance
     
+class menuViewSet(viewsets.ModelViewSet):
+    serializer_class=menuSerializer
+    permission_classes=[IsAdminUser]
+    def get_queryset(self):
+        return menus.objects.all().select_related("parent")
+
     
+class sessionViewSet(viewsets.ModelViewSet):
+    queryset=session.objects.all()
+    serializer_class=sessionSerializer
+    permission_classes=[IsAdminUser]
+
     
     
     

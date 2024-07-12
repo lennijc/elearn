@@ -14,8 +14,8 @@ class comment(models.Model):
     creator = models.ForeignKey(User,on_delete=models.CASCADE)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
-    answer=models.IntegerField()
-    isAnswer=models.BooleanField()
+    answer=models.IntegerField(choices=((0,0),(1,1)),default=0)
+    isAnswer=models.BooleanField(default=False)
     SCORE_CHOICES=[
         (1,"one"),
         (2,"two"),
@@ -61,7 +61,8 @@ class courses(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     student = models.ManyToManyField(User,through="courseUser",through_fields=('course','user'),related_name="student_user")
-    isComplete=models.BooleanField()
+    isComplete=models.BooleanField(default=False)
+    status=models.CharField(max_length=12,choices=(("presell","presell"),("start","start")),default="start")
     price=models.PositiveIntegerField(default=0)
     support= models.CharField(max_length=255,default="telegram_group")
     discount=models.PositiveSmallIntegerField(default=0)
@@ -87,6 +88,7 @@ class session(models.Model):
     updatedAt = models.DateTimeField(auto_now=True)
     time=models.DurationField(help_text="total duration of a vidoe clip")
     free = models.BooleanField()
+    file=models.FileField(upload_to=dynamic_upload_to,null=True,blank=True)
     def __str__(self):
         return self.title
     
@@ -101,9 +103,10 @@ class notification(models.Model):
 
 class menus(models.Model):
     title = models.CharField(max_length=255)
-    href = models.CharField(max_length=255)
+    href = models.CharField(max_length=255,unique=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
+    parent=models.ForeignKey('self',on_delete=models.SET_NULL,null=True,default=None)
     def __str__(self):
         return self.title
     

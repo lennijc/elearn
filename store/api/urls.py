@@ -6,7 +6,8 @@ courseUserApi,course_info,SendCommentApi,getAllCourses,presell,alluser,getPopula
 articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,deleteUserApi,
 getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView,
 UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
-createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,UpdateDiscountAPIView,retrieveDraftArticle)
+createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
+UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -15,6 +16,8 @@ router.register(r'courses', coursesViewSet)
 router.register(r'articles', articleViewSet)
 router.register(r'comments', commentViewSet,basename="answerComment")
 router.register(r'offs', offViewset,basename="discountCode")
+router.register(r'menus', menuViewSet,basename="menus")
+
 urlpatterns = [
     path("token/",TokenObtainPairView.as_view(),name="login"),
     path("token/refresh/",TokenRefreshView.as_view(),name="refreshToken"),
