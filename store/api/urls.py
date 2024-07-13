@@ -7,7 +7,7 @@ articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,delet
 getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView,
 UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
 createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
-UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet)
+UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,sessionViewSet)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -17,6 +17,7 @@ router.register(r'articles', articleViewSet)
 router.register(r'comments', commentViewSet,basename="answerComment")
 router.register(r'offs', offViewset,basename="discountCode")
 router.register(r'menus', menuViewSet,basename="menus")
+router.register(r'sessions', sessionViewSet,basename="changeSessions")
 
 urlpatterns = [
     path("token/",TokenObtainPairView.as_view(),name="login"),
@@ -43,7 +44,7 @@ urlpatterns = [
     path('ban/<uuid:id>/', banUserApi.as_view(), name='banUser'),
     path('navbar/', navbarWithSubMenu.as_view(), name='navbar'),
     path('deleteuser/<uuid:pk>/', deleteUserApi.as_view(), name='deleteUser'),
-    path('ad/',include(router.urls), name='categories'),
+    path('ad/',include(router.urls), name='viewsets'),
     path('contact/answer/',sendContactAnswer.as_view(), name='answerContact'),
     path('order/',orderlistApiView.as_view(), name='listOrder'),
     path('order/<int:pk>/',orderRetrieveApiView.as_view(), name='singleOrder'),
@@ -56,4 +57,5 @@ urlpatterns = [
     path("article/publishdraft/<str:href>/",publishDraftArticle.as_view(),name="publishDraft"),
     path("off/all/",UpdateDiscountAPIView.as_view(),name="allCoursesDiscount"),
     path('getdraftarticle/<str:href>/', retrieveDraftArticle.as_view(),name="getDraftArticle"),
+    path('session/create/<int:course_id>/', CreateSessionView.as_view(),name="createSession"),
 ]

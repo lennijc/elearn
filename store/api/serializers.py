@@ -19,6 +19,12 @@ class simpleCommentSerialzier(serializers.ModelSerializer):
     class Meta:
         model=comment
         fields="__all__"
+        
+class simpleSessionSerialzier(serializers.ModelSerializer):
+    course=serializers.SlugRelatedField(slug_field="name",read_only=True)
+    class Meta:
+        model=session
+        fields="__all__"
 class sessionSerializer(serializers.ModelSerializer):
     class Meta:
         model=session
@@ -134,6 +140,8 @@ class commentSerializer(serializers.ModelSerializer):
     creator=simpleUserSerializer(read_only=True)
     #mainCommentID=simpleCommentSerialzier(read_only=True)
     course=serializers.SlugRelatedField(slug_field="name",read_only=True)
+    #answer content is the reverse of maincommentID because mainCommentID is refering to the question or mainComment
+    #but answer content is refering to the answer or the reply comment to the mainComment
     answerContent=simpleCommentSerialzier(source="replies",many=True,read_only=True)
     class Meta:
         model=comment
@@ -177,7 +185,9 @@ class AllCourseSerializer(serializers.ModelSerializer):
         model=courses
         exclude=["student"]
     def get_courseAverageScore(self,obj):
-        average_score = comment.objects.filter(course=obj).aggregate(Avg("score"))
+        #for the average score we have to be fair and ignore the answer comments because the answer comment 
+        #by default give score 5 to the course so thats why we filter the comment by the isAnswer=False
+        average_score = comment.objects.filter(course=obj).filter(isAnswer=False).aggregate(Avg("score"))
         return int(average_score["score__avg"]) if average_score["score__avg"] else 5
     def get_registers(self,obj):
         courseStudentsCount=courseUser.objects.filter(course=obj).count()
@@ -222,7 +232,9 @@ class categorySubMenu(serializers.ModelSerializer):
 class courseInfoSerializer(serializers.ModelSerializer):
     categoryID=categorySerializer(read_only=True)
     creator=UserSerializer(read_only=True)
-    comments=commentSerializer(source="comment_set",many=True,read_only=True)
+    # comments=commentSerializer(source="comment_set",many=True,read_only=True)
+    #we have to send only the comments with isAnswer=0 because client wants it that way when showing the comments
+    comments=serializers.SerializerMethodField()
     sessions=sessionSerializer(source="session_set",many=True,read_only=True)
     class Meta:
         model=courses
@@ -233,6 +245,11 @@ class courseInfoSerializer(serializers.ModelSerializer):
         representation["courseStudentsCount"] = context["courseStudentsCount"]
         representation["isUserRegisteredToThisCourse"] = context["isUserRegisteredToThisCourse"]
         return representation
+    
+    def get_comments(self,obj):
+        queryset=comment.objects.filter(course=obj).filter(isAnswer=False)
+        serializer = commentSerializer(instance=queryset,many=True)
+        return serializer.data
 
 class courseuser(serializers.ModelSerializer):
     #student = coursesSerializer(source="student_user",many=True,read_only=True)

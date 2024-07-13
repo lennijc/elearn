@@ -5,6 +5,9 @@ from django.contrib.auth import get_user_model
 User=get_user_model()
 
 def dynamic_upload_to(instance,filename):
+    #session model doesnt have href field
+    if instance.__class__.__name__=="session":
+        return f"{instance.__class__.__name__}/{instance.course_id}/{filename}"
     return f"{instance.__class__.__name__}/{instance.href}/{filename}"
 
 class comment(models.Model):
@@ -88,7 +91,7 @@ class session(models.Model):
     updatedAt = models.DateTimeField(auto_now=True)
     time=models.DurationField(help_text="total duration of a vidoe clip")
     free = models.BooleanField()
-    file=models.FileField(upload_to=dynamic_upload_to,null=True,blank=True)
+    video=models.FileField(upload_to=dynamic_upload_to,null=True,blank=True)
     def __str__(self):
         return self.title
     

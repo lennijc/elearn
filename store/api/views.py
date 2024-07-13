@@ -7,7 +7,7 @@ from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerialize
     articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
     orderSerializer,ChangePasswordSerializer,userProfileSerializer,
-    answerCommentSerializer,offSerializer,sessionSerializer)
+    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -15,7 +15,8 @@ from rest_framework_simplejwt.exceptions import TokenError,InvalidToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.generics import RetrieveAPIView,CreateAPIView
 from django.contrib.auth import authenticate, get_user_model
-from rest_framework.permissions import IsAuthenticated,IsAuthenticatedOrReadOnly,IsAdminUser
+from rest_framework.permissions import (IsAuthenticated,IsAuthenticatedOrReadOnly,
+                                        IsAdminUser,BasePermission,SAFE_METHODS)
 from ..models import menus,courses,categories,article,courseUser,comment,orderModel,session,off
 from authentication.models import banUser
 from django.db import models
@@ -28,10 +29,19 @@ from datetime import timedelta
 from rest_framework.parsers import MultiPartParser
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
-
-
+import os
 
 user = get_user_model()
+
+#a custom permission to be able to use the viewset apis both for cms and mainpage
+class IsAdminUserOrReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        # Allow safe methods for everyone
+        if request.method in SAFE_METHODS:
+            return True
+        
+        # Admin users can perform any operation
+        return request.user and request.user.is_staff
 class RegisterView(APIView):
     permission_classes = (AllowAny,)
 
@@ -469,7 +479,35 @@ class menuViewSet(viewsets.ModelViewSet):
 class sessionViewSet(viewsets.ModelViewSet):
     queryset=session.objects.all()
     serializer_class=sessionSerializer
-    permission_classes=[IsAdminUser]
+    permission_classes=[IsAdminUserOrReadOnly]
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return simpleSessionSerialzier
+        return super().get_serializer_class()
+    
+ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mov', '.mkv', '.flv']
+
+class CreateSessionView(APIView):
+    def post(self, request, course_id, format=None):
+        try:
+            course_instance = courses.objects.get(id=course_id)
+            request.data["course"]=course_instance.id
+            # Extract the file name from the request
+            file_name = request.FILES.get('video').name
+            
+            # Validate the file extension
+            _, file_extension = os.path.splitext(file_name)
+            if file_extension.lower() not in ALLOWED_VIDEO_EXTENSIONS:
+                return Response({'error': 'Invalid file type. Only video files are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer = sessionSerializer(data=request.data)
+            if serializer.is_valid():
+                session = serializer.save()
+                return Response(sessionSerializer(session).data)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except courses.DoesNotExist:
+            return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
 
     
     
