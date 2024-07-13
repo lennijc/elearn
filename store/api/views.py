@@ -509,7 +509,22 @@ class CreateSessionView(APIView):
         except courses.DoesNotExist:
             return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
+class getRelatedCourses(ListAPIView):
+    serializer_class=AllCourseSerializer
+    def list(self, request, *args, **kwargs):
+        course_instance=get_object_or_404(courses,href=kwargs["href"])
+        queryset = courses.objects.filter(categoryID=course_instance.categoryID).exclude(href=kwargs["href"])
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     
+
     
     
 

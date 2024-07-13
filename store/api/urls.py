@@ -7,7 +7,7 @@ articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,delet
 getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView,
 UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
 createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
-UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,sessionViewSet)
+UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,sessionViewSet,getRelatedCourses)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -58,4 +58,5 @@ urlpatterns = [
     path("off/all/",UpdateDiscountAPIView.as_view(),name="allCoursesDiscount"),
     path('getdraftarticle/<str:href>/', retrieveDraftArticle.as_view(),name="getDraftArticle"),
     path('session/create/<int:course_id>/', CreateSessionView.as_view(),name="createSession"),
+    path('relatedcourse/<str:href>/', getRelatedCourses.as_view(),name="getRelatedCourse"),
 ]
