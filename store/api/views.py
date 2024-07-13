@@ -512,6 +512,7 @@ class CreateSessionView(APIView):
 
 class getRelatedCourses(ListAPIView):
     serializer_class=AllCourseSerializer
+    queryset=courses.objects.all()
     def list(self, request, *args, **kwargs):
         course_instance=get_object_or_404(courses,href=kwargs["href"])
         queryset = courses.objects.filter(categoryID=course_instance.categoryID).exclude(href=kwargs["href"])
