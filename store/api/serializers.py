@@ -8,7 +8,11 @@ from ..models import menus,courses,categories,article,courseUser,comment,session
 from django.db.models import Avg
 User = get_user_model()
 
-#for a single article info 
+class contactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=contact
+        fields="__all__"
+
 class simpleUserSerializer(serializers.ModelSerializer):
     class Meta:
         model=User

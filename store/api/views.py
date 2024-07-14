@@ -7,7 +7,7 @@ from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerialize
     articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
     orderSerializer,ChangePasswordSerializer,userProfileSerializer,
-    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier)
+    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,contactSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -17,7 +17,7 @@ from rest_framework.generics import RetrieveAPIView,CreateAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import (IsAuthenticated,IsAuthenticatedOrReadOnly,
                                         IsAdminUser,BasePermission,SAFE_METHODS)
-from ..models import menus,courses,categories,article,courseUser,comment,orderModel,session,off
+from ..models import menus,courses,categories,article,courseUser,comment,orderModel,session,off,contact
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
@@ -249,7 +249,7 @@ class sendContactAnswer(APIView):
         serailizer.is_valid(raise_exception=True)
         email=serailizer.validated_data["email"]
         message=serailizer.validated_data["message"]
-        send_notification_mail.delay(email,message)
+        send_notification_mail(email,message)
         return Response({"email task queued"},status=status.HTTP_201_CREATED)
     
 class orderlistApiView(ListAPIView):
@@ -488,6 +488,7 @@ class sessionViewSet(viewsets.ModelViewSet):
 ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mov', '.mkv', '.flv']
 
 class CreateSessionView(APIView):
+    permission_classes=[IsAdminUser]
     def post(self, request, course_id, format=None):
         try:
             course_instance = courses.objects.get(id=course_id)
@@ -524,6 +525,43 @@ class getRelatedCourses(ListAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+class contactViewSet(viewsets.ModelViewSet):
+    permission_classes=[IsAdminUser]
+    queryset=contact.objects.all()
+    serializer_class=contactSerializer
+    
+    #getRelatedSession gonna be used for each course alongside courseinfo
+class getRelatedSession(ListAPIView):
+    serializer_class=sessionSerializer
+    queryset=session.objects.all()
+    def list(self, request, *args, **kwargs):
+        course_instance=get_object_or_404(courses,href=kwargs["href"])
+        queryset = session.objects.filter(course=course_instance.id)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    #getDetailSessions gonna be used after clicking on a session in clinet side
+class getDetailSessions(APIView):
+    def get(self,request,*args,**kwargs):
+        course_instance=get_object_or_404(courses,href=kwargs["href"])
+        queryset = session.objects.filter(course=course_instance.id)
+        session_serializer=sessionSerializer(queryset,many=True)
+        session_instance=get_object_or_404(session,id=kwargs["pk"])
+        respons_data = {
+            "session":str(session_instance.video),
+            "sessions":session_serializer.data
+        }
+        return Response(respons_data,status=status.HTTP_200_OK)
+
+    
+    
     
 
     

@@ -7,7 +7,8 @@ articleInfo,getAllArticles,categorySubCourses,banUserApi,navbarWithSubMenu,delet
 getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveApiView,ChangePasswordView,
 UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
 createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
-UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,sessionViewSet,getRelatedCourses)
+UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,
+sessionViewSet,getRelatedCourses,contactViewSet,getRelatedSession,getDetailSessions)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -18,6 +19,7 @@ router.register(r'comments', commentViewSet,basename="answerComment")
 router.register(r'offs', offViewset,basename="discountCode")
 router.register(r'menus', menuViewSet,basename="menus")
 router.register(r'sessions', sessionViewSet,basename="changeSessions")
+router.register(r'contacts',contactViewSet,basename="contacts")
 
 urlpatterns = [
     path("token/",TokenObtainPairView.as_view(),name="login"),
@@ -59,4 +61,7 @@ urlpatterns = [
     path('getdraftarticle/<str:href>/', retrieveDraftArticle.as_view(),name="getDraftArticle"),
     path('session/create/<int:course_id>/', CreateSessionView.as_view(),name="createSession"),
     path('relatedcourse/<str:href>/', getRelatedCourses.as_view(),name="getRelatedCourse"),
+    #getting all the sessions of a course
+    path('relatedsessions/<str:href>/', getRelatedSession.as_view(),name="getRelatedSession"),
+    path('session/detail/<str:href>/<int:pk>/', getDetailSessions.as_view(),name="getRelatedSession"),
 ]
