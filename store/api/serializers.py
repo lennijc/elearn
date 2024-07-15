@@ -255,14 +255,14 @@ class courseInfoSerializer(serializers.ModelSerializer):
         serializer = commentSerializer(instance=queryset,many=True)
         return serializer.data
 
-class courseuser(serializers.ModelSerializer):
+class courseuserSerializer(serializers.ModelSerializer):
     #student = coursesSerializer(source="student_user",many=True,read_only=True)
     #course=coursesSerializer(source="course_set",many=True)
-    student=UserSerializer(source="user")
-    study=coursesSerializer(source="course")
+    user=simpleUserSerializer(read_only=True)
+    course=coursesSerializer(read_only=True)
     class Meta:
         model=courseUser
-        fields=["student","study","createdAt","updatedAt"]
+        fields="__all__"
 
 class orderSerializer(serializers.ModelSerializer):
     course=AllCourseSerializer(read_only=True)

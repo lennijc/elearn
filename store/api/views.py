@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
 from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
-    articleSerializer,NavbarCategoriesSerializer,courseuser,courseInfoSerializer,commentSerializer,AllCourseSerializer,
+    articleSerializer,NavbarCategoriesSerializer,courseuserSerializer,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
     orderSerializer,ChangePasswordSerializer,userProfileSerializer,
     answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,contactSerializer)
@@ -118,14 +118,17 @@ class NavbarApi(APIView):
 class courseUserApi(APIView):
     def get(self,request):
         all_courses=courseUser.objects.all()
-        serializer=courseuser(all_courses,many=True)
+        serializer=courseuserSerializer(all_courses,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
 class course_info(APIView):
     permission_classes=[IsAuthenticatedOrReadOnly]
     def get(self,request,shortName):
         courseStudentsCount=courseUser.objects.filter(course__href=shortName).count()
-        isUserRegisteredToThisCourse=True if courseUser.objects.filter(course__href=shortName,user=request.user) else False
+        if self.request.user.is_authenticated:
+            isUserRegisteredToThisCourse=True if courseUser.objects.filter(course__href=shortName,user=request.user) else False
+        else:
+            isUserRegisteredToThisCourse=False
         try:
             course=courses.objects.get(href=shortName)
         except:
@@ -254,14 +257,14 @@ class sendContactAnswer(APIView):
     
 class orderlistApiView(ListAPIView):
     permission_classes=[IsAuthenticated]
-    serializer_class=orderSerializer
+    serializer_class=courseuserSerializer
     def get_queryset(self):   
-        queryset = orderModel.objects.filter(user=self.request.user)
+        queryset = courseUser.objects.filter(user=self.request.user)
         return queryset
     
 class orderRetrieveApiView(RetrieveAPIView):
-    queryset=orderModel.objects.all()
-    serializer_class=orderSerializer
+    queryset=courseUser.objects.all()
+    serializer_class=courseuserSerializer
 
 
 class ChangePasswordView(UpdateAPIView):
@@ -554,11 +557,50 @@ class getDetailSessions(APIView):
         queryset = session.objects.filter(course=course_instance.id)
         session_serializer=sessionSerializer(queryset,many=True)
         session_instance=get_object_or_404(session,id=kwargs["pk"])
+        single_session_serializer=sessionSerializer(session_instance)
         respons_data = {
-            "session":str(session_instance.video),
+            "session":single_session_serializer.data,
             "sessions":session_serializer.data
         }
         return Response(respons_data,status=status.HTTP_200_OK)
+    
+class discountCodeCheck(APIView):
+    def post(self,request,*args,**kwargs):
+        off_instance=get_object_or_404(off,code=kwargs["code"])
+        if off_instance.course_id != request.data.get("course"):
+            return Response({"error":"something is wronge with the code"},status=status.HTTP_400_BAD_REQUEST)
+        
+        else:
+            if off_instance.max == off_instance.uses:
+                return Response({"error":"this code has reached to its maximum usage , so it is invalid"},status=status.HTTP_409_CONFLICT)
+            
+            else:
+                off_instance.uses += 1 if off_instance.uses+1 <=off_instance.max else 0
+                off_instance.save()
+                return Response({"off percent":off_instance.percent},status=status.HTTP_202_ACCEPTED)
+            
+class registerUser(APIView):
+    permission_classes=[IsAuthenticated]
+    def post(self,request,*args,**kwargs):
+        course_instance=get_object_or_404(courses , href=kwargs["href"])
+        if request.data.get("price") is None:
+            return Response({"error":"you have to provide price"},status=status.HTTP_400_BAD_REQUEST)
+        else:
+            try:
+                course_user_instance=courseUser(course = course_instance , user = request.user,price=request.data.get("price"))
+                course_user_instance.save()
+                serializer = courseuserSerializer(course_user_instance)
+                return Response(serializer.data , status=status.HTTP_200_OK)
+            except:
+                return Response({"error":"something went wronge or you have already enrolled in this course"},status=status.HTTP_402_PAYMENT_REQUIRED)
+            
+        
+            
+        
+        
+        
+        
+        
 
     
     

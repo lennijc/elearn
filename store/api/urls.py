@@ -8,7 +8,8 @@ getAllComments,categoryViewSet,sendContactAnswer,orderlistApiView,orderRetrieveA
 UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
 createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
 UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,
-sessionViewSet,getRelatedCourses,contactViewSet,getRelatedSession,getDetailSessions)
+sessionViewSet,getRelatedCourses,contactViewSet,getRelatedSession,
+getDetailSessions,discountCodeCheck,registerUser)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -48,8 +49,8 @@ urlpatterns = [
     path('deleteuser/<uuid:pk>/', deleteUserApi.as_view(), name='deleteUser'),
     path('ad/',include(router.urls), name='viewsets'),
     path('contact/answer/',sendContactAnswer.as_view(), name='answerContact'),
-    path('order/',orderlistApiView.as_view(), name='listOrder'),
-    path('order/<int:pk>/',orderRetrieveApiView.as_view(), name='singleOrder'),
+    path('order/',orderlistApiView.as_view(), name='getlistOrder'),
+    path('order/<int:pk>/',orderRetrieveApiView.as_view(), name='getsingleOrder'),
     path('change_password/', ChangePasswordView.as_view(), name='change_password'),
     path('user/profile/', UserAPIView.as_view(), name='updateProfiles'),
     path('main/', getMainPageInfo.as_view(), name='mainPage'),
@@ -64,4 +65,6 @@ urlpatterns = [
     #getting all the sessions of a course
     path('relatedsessions/<str:href>/', getRelatedSession.as_view(),name="getRelatedSession"),
     path('session/detail/<str:href>/<int:pk>/', getDetailSessions.as_view(),name="getRelatedSession"),
+    path('off/<str:code>/', discountCodeCheck.as_view(),name="checkDiscountCode"),
+    path('register/<str:href>/', registerUser.as_view(),name="registerUserToCourse"),
 ]

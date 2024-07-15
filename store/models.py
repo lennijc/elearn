@@ -77,6 +77,7 @@ class courseUser(models.Model):
     user= models.ForeignKey(User,on_delete=models.PROTECT)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
+    price=models.PositiveIntegerField(default=0)
     def __str__(self) -> str:
         return str(self.course)
     class Meta:
@@ -138,7 +139,7 @@ class orderModel(models.Model):
         ]
         
 class off(models.Model):
-    code = models.CharField(max_length=12)
+    code = models.CharField(max_length=12,unique=True)
     percent=models.PositiveSmallIntegerField()
     course=models.ForeignKey(courses,on_delete=models.CASCADE)
     max=models.PositiveSmallIntegerField()
