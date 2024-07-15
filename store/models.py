@@ -125,18 +125,18 @@ class contact(models.Model):
     def __str__(self):
         return self.name
 
-class orderModel(models.Model):
-    course=models.ForeignKey(courses,on_delete=models.PROTECT)
-    user=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
-    createdAt = models.DateTimeField(auto_now_add=True)
-    updatedAt = models.DateTimeField(auto_now=True)
-    price=models.PositiveIntegerField(default=0)
-    def __str__(self):
-        return  f"{self.course}"
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['course', 'user'], name='already ordered and registered in this course'),
-        ]
+# class orderModel(models.Model):
+#     course=models.ForeignKey(courses,on_delete=models.PROTECT)
+#     user=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
+#     createdAt = models.DateTimeField(auto_now_add=True)
+#     updatedAt = models.DateTimeField(auto_now=True)
+#     price=models.PositiveIntegerField(default=0)
+#     def __str__(self):
+#         return  f"{self.course}"
+#     class Meta:
+#         constraints = [
+#             models.UniqueConstraint(fields=['course', 'user'], name='already ordered and registered in this course'),
+#         ]
         
 class off(models.Model):
     code = models.CharField(max_length=12,unique=True)

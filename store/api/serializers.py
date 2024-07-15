@@ -4,7 +4,7 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-from ..models import menus,courses,categories,article,courseUser,comment,session,notification,contact,orderModel,off
+from ..models import menus,courses,categories,article,courseUser,comment,session,notification,contact,off
 from django.db.models import Avg
 User = get_user_model()
 
@@ -264,11 +264,11 @@ class courseuserSerializer(serializers.ModelSerializer):
         model=courseUser
         fields="__all__"
 
-class orderSerializer(serializers.ModelSerializer):
-    course=AllCourseSerializer(read_only=True)
-    class Meta:
-        model=orderModel
-        fields="__all__"
+# class orderSerializer(serializers.ModelSerializer):
+#     course=AllCourseSerializer(read_only=True)
+#     class Meta:
+#         model=orderModel
+#         fields="__all__"
 
 
 class EmailSerializer(serializers.Serializer):

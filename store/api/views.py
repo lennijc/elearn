@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny,IsAuthenticated,IsAdminUser
 from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerializer,coursesSerializer,categorySerializer,
     articleSerializer,NavbarCategoriesSerializer,courseuserSerializer,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
-    orderSerializer,ChangePasswordSerializer,userProfileSerializer,
+    ChangePasswordSerializer,userProfileSerializer,
     answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,contactSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
@@ -17,7 +17,7 @@ from rest_framework.generics import RetrieveAPIView,CreateAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import (IsAuthenticated,IsAuthenticatedOrReadOnly,
                                         IsAdminUser,BasePermission,SAFE_METHODS)
-from ..models import menus,courses,categories,article,courseUser,comment,orderModel,session,off,contact
+from ..models import menus,courses,categories,article,courseUser,comment,session,off,contact
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
