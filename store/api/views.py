@@ -396,6 +396,15 @@ class commentViewSet(viewsets.ModelViewSet):
     serializer_class=answerCommentSerializer
     permission_classes=[IsAdminUser]
     queryset=comment.objects.all()
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions this view requires.
+        """
+        if self.action == 'answerComment':
+            self.permission_classes = [IsAuthenticated]  # Allow all users to answer comments
+        else:
+            self.permission_classes = [IsAdminUser]  # Restrict other actions to admin users
+        return super().get_permissions()
     
     @action(detail=True, methods=["post"])
     def answerComment(self, request, *args, **kwargs):

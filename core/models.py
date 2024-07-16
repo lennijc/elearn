@@ -27,7 +27,7 @@ class User(AbstractUser):
     })
     def save(self, *args, **kwargs):
         if self.is_staff:
-            self.role = 'admin'
+            self.role = 'ADMIN'
         super().save(*args, **kwargs)
 
 
