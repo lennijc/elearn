@@ -577,7 +577,7 @@ class discountCodeCheck(APIView):
             else:
                 off_instance.uses += 1 if off_instance.uses+1 <=off_instance.max else 0
                 off_instance.save()
-                return Response({"off percent":off_instance.percent},status=status.HTTP_202_ACCEPTED)
+                return Response({"off_percent":off_instance.percent},status=status.HTTP_202_ACCEPTED)
             
 class registerUser(APIView):
     permission_classes=[IsAuthenticated]
