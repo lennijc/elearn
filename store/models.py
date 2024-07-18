@@ -36,7 +36,7 @@ class article(models.Model):
     title=models.CharField(max_length=255)
     description=models.TextField()
     body=models.CharField(max_length=255)
-    cover=models.ImageField(upload_to=dynamic_upload_to,null=True,blank=True)
+    cover=models.ImageField(upload_to=dynamic_upload_to,default="default/defImage.png")
     href=models.CharField(max_length=255,unique=True)
     category=models.ForeignKey("categories",on_delete=models.PROTECT)
     creator=models.ForeignKey(User,on_delete=models.SET_NULL,null=True)
@@ -57,7 +57,7 @@ class categories(models.Model):
 class courses(models.Model):
     name=models.CharField(max_length=255)
     description=models.TextField(null=True , blank=True)
-    cover = models.ImageField(upload_to=dynamic_upload_to,null=True , blank=True)
+    cover = models.ImageField(upload_to=dynamic_upload_to,default="default/defImage.png")
     href=models.CharField(max_length=255,unique=True)
     categoryID=models.ForeignKey(categories,on_delete=models.PROTECT,related_name="subMenu")
     creator=models.ForeignKey(User,on_delete=models.PROTECT,null=True,blank=True)
