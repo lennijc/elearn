@@ -35,7 +35,7 @@ class comment(models.Model):
 class article(models.Model):
     title=models.CharField(max_length=255)
     description=models.TextField()
-    body=models.CharField(max_length=255)
+    body=models.TextField()
     cover=models.ImageField(upload_to=dynamic_upload_to,default="default/defImage.png")
     href=models.CharField(max_length=255,unique=True)
     category=models.ForeignKey("categories",on_delete=models.PROTECT)

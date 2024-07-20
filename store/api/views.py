@@ -153,7 +153,7 @@ class SendCommentApi(APIView):
 
 class getAllCourses(APIView):
     def get(self,request):
-        allCourses=courses.objects.all()
+        allCourses=courses.objects.all().order_by("-createdAt")
         serializer=AllCourseSerializer(allCourses,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
@@ -269,24 +269,22 @@ class orderRetrieveApiView(RetrieveAPIView):
 
 class ChangePasswordView(UpdateAPIView):
     serializer_class = ChangePasswordSerializer
-    model = user
     permission_classes = (IsAuthenticated,)
 
     def get_object(self, queryset=None):
         return self.request.user
 
     def update(self, request, *args, **kwargs):
-        self.object = self.get_object()
+        object = self.get_object()
         serializer = self.get_serializer(data=request.data)
 
-        if serializer.is_valid(raise_exception=True):
-            old_password = serializer.validated_data.get("old_password")
-            if not self.object.check_password(old_password):
-                return Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
-            self.object.set_password(serializer.validated_data.get("new_password"))
-            self.object.save()
-            return Response({"message":"password changed successfully"},status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        
+        if not object.check_password(serializer.validated_data["old_password"]):
+            return Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
+        object.set_password(serializer.validated_data["new_password"])
+        object.save()
+        return Response({"message":"password changed successfully"},status=status.HTTP_200_OK)
 
 class UserAPIView(UpdateAPIView):
     serializer_class = userProfileSerializer
@@ -299,6 +297,7 @@ class getMainPageInfo(APIView):
         _courses_count = courses.objects.all().count()
         _total_sessions_time=session.objects.aggregate(total_time=Sum("time"))
         total_duration_readable=0
+        print(_total_sessions_time)
         if _total_sessions_time:
             try:
                 total_duration_readable = str(timedelta(seconds=int(_total_sessions_time["total_time"].total_seconds())))
@@ -307,6 +306,7 @@ class getMainPageInfo(APIView):
                 print("there is no session video in the site")
         else:
             print("No sessions found.")
+            _total_sessions_time["total_time"]=0
         _email="storino@gmail.com"
         _phone="02199339339"
         _users_count=user.objects.all().count()
@@ -314,7 +314,8 @@ class getMainPageInfo(APIView):
             "coursesCount":_courses_count,
             "email":_email,
             "phone":_phone,
-            "totalTime":int(_total_sessions_time["total_time"].total_seconds()/60),
+            "totalTime":(0 if _total_sessions_time["total_time"]==0 or _total_sessions_time["total_time"]==None
+                        else int(_total_sessions_time["total_time"].total_seconds()/60)),
             "usersCount":_users_count,
         }
         return Response(_response_data,status=status.HTTP_200_OK)
@@ -325,6 +326,9 @@ class coursesViewSet(viewsets.ModelViewSet):
     queryset=courses.objects.all()
     serializer_class=coursesSerializer
     parser_classes=[MultiPartParser]
+    def perform_create(self, serializer):
+        return serializer.save(creator=self.request.user)
+    
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         try:
@@ -355,6 +359,7 @@ class createPublishArticle(CreateAPIView):
 class createDraftArticle(CreateAPIView):
     permission_classes=[IsAdminUser]
     serializer_class=articleSerializer
+    parser_classes=[MultiPartParser]
     queryset=article.objects.all()
     def perform_create(self, serializer):
         serializer.validated_data["creator"]=self.request.user
