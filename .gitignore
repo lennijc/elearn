@@ -4,3 +4,4 @@ Pipfile.lock
 *.zip
 venv/
 prometheus.yml
+*workspace
