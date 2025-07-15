@@ -23,6 +23,7 @@ router.register(r'sessions', sessionViewSet,basename="changeSessions")
 router.register(r'contacts',contactViewSet,basename="contacts")
 
 urlpatterns = [
+    path('', include(router.urls)),
     path("token/",TokenObtainPairView.as_view(),name="login"),
     path("token/refresh/",TokenRefreshView.as_view(),name="refreshToken"),
     path("signup/",RegisterView.as_view()),
