@@ -9,7 +9,7 @@ UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
 createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
 UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,
 sessionViewSet,getRelatedCourses,contactViewSet,getRelatedSession,
-getDetailSessions,discountCodeCheck,registerUser)
+getDetailSessions,discountCodeCheck,registerUser, lessonViewSet)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -21,6 +21,7 @@ router.register(r'offs', offViewset,basename="discountCode")
 router.register(r'menus', menuViewSet,basename="menus")
 router.register(r'sessions', sessionViewSet,basename="changeSessions")
 router.register(r'contacts',contactViewSet,basename="contacts")
+router.register(r'lessons',lessonViewSet,basename="lessons")
 
 urlpatterns = [
     path('', include(router.urls)),

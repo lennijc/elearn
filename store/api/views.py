@@ -7,7 +7,7 @@ from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerialize
     articleSerializer,NavbarCategoriesSerializer,courseuserSerializer,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
     ChangePasswordSerializer,userProfileSerializer,
-    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,contactSerializer)
+    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,contactSerializer, lessonSerializer, VideoLessonSerializer, VideoCreateSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -17,7 +17,7 @@ from rest_framework.generics import RetrieveAPIView,CreateAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import (IsAuthenticated,IsAuthenticatedOrReadOnly,
                                         IsAdminUser,BasePermission,SAFE_METHODS)
-from ..models import menus,courses,categories,article,courseUser,comment,session,off,contact
+from ..models import menus,courses,categories,article,courseUser,comment,session,off,contact, Lesson, LessonVideo, Topic
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
@@ -30,6 +30,12 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 import os
+from django.core.cache import cache
+from django.db import transaction
+import boto3
+from botocore.client import Config
+from django.conf import settings
+
 
 user = get_user_model()
 
@@ -608,15 +614,102 @@ class registerUser(APIView):
             except:
                 return Response({"error":"something went wronge or you have already enrolled in this course"},status=status.HTTP_402_PAYMENT_REQUIRED)
             
-        
-            
-        
-        
-        
-        
+class lessonViewSet(viewsets.ModelViewSet):
+    serializer_class = lessonSerializer
+    def get_queryset(self):
+        return Lesson.objects.all().prefetch_related('video').select_related('topic')
+
+
         
 
-    
+class VideoCreateAPIView(APIView):
+    def post(self, request, course_id, *args, **kwargs):
+        # Validate course exists
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Validate request data
+        serializer = VideoCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Extract validated data
+        topic_title = serializer.validated_data['topic_title']
+        lesson_title = serializer.validated_data['lesson_title']
+        video_title = serializer.validated_data['video_title']
+
+
+        # Create or get topic
+        topic, _ = Topic.objects.get_or_create(
+            title=topic_title,
+            course=course,
+            defaults={'created_at': None}
+        )
+
+        # Create lesson
+        lesson = Lesson.objects.create(
+            title=lesson_title,
+            topic=topic
+        )
+
+        # Check if lesson already has a video
+        if hasattr(lesson, 'video'):
+            return Response(
+                {"error": "This lesson already has a video"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create video (transaction to ensure atomicity)
+        with transaction.atomic():
+            video = Video.objects.create(
+                lesson=lesson,
+                title=video_title,
+                video_file=video_file,
+                duration=duration,
+                is_public=is_public
+            )
+
+        # Cache video metadata
+        cache_key = f'video_{video.id}'
+        cache.set(cache_key, {
+            'id': video.id,
+            'title': video.title,
+            'lesson_id': video.lesson_id,
+            'is_public': video.is_public
+        }, timeout=86400)
+
+        # Get video URL
+        video_url = video.video_file.url if video.is_public else self.get_signed_url(video)
+
+        return Response(
+            {
+                'video_url': video_url,
+                'video_id': video.id,
+                'lesson_id': lesson.id,
+                'topic_id': topic.id
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+    def get_signed_url(self, video):
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME,
+            config=Config(signature_version='s3v4')
+        )
+        cache_key = f'video_url_{video.id}'
+        video_url = cache.get(cache_key)
+        if not video_url:
+            video_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': video.video_file.name},
+                ExpiresIn=3600
+            )
+            cache.set(cache_key, video_url, timeout=3600)
+        return video_url 
     
     
 

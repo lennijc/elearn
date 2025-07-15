@@ -4,7 +4,7 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import password_validation, get_user_model
-from ..models import menus,courses,categories,article,courseUser,comment,session,notification,contact,off
+from ..models import menus,courses,categories,article,courseUser,comment,session,notification,contact,off, LessonVideo, Lesson, Topic
 from django.db.models import Avg
 User = get_user_model()
 
@@ -300,3 +300,20 @@ class offSerializer(serializers.ModelSerializer):
         model=off
         fields="__all__"
 
+class VideoLessonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LessonVideo
+        fields = '__all__'
+
+class lessonSerializer(serializers.ModelSerializer):
+    video = VideoLessonSerializer(read_only=True, many=True)
+    topic = serializers.SlugRelatedField(slug_field='title', read_only=True)
+    class Meta:
+        model = Lesson
+        fields = "__all__"
+
+class VideoCreateSerializer(serializers.Serializer):
+    topic_title = serializers.CharField(max_length=200)
+    lesson_title = serializers.CharField(max_length=200)
+    video_title = serializers.CharField(max_length=200)
+    

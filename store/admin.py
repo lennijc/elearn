@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (product,Customer,Order,collection,menus,courses,
                      categories,article,courseUser,comment,session,notification,
-                     contact,off)
+                     contact,off, LessonVideo, Lesson, Topic)
 # Register your models here.
 
 
@@ -19,4 +19,6 @@ admin.site.register(session)
 admin.site.register(notification)
 admin.site.register(contact)
 # admin.site.register(orderModel)
-admin.site.register(off)
+admin.site.register(Lesson)
+admin.site.register(Topic)
+admin.site.register(LessonVideo)

@@ -1,14 +1,27 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+import os
+from django.utils.text import slugify
 # Create your models here.
 
 User=get_user_model()
 
+#uploading_path_specifiers:/*  
 def dynamic_upload_to(instance,filename):
     #session model doesnt have href field
     if instance.__class__.__name__=="session":
         return f"{instance.__class__.__name__}/{instance.course_id}/{filename}"
     return f"{instance.__class__.__name__}/{instance.href}/{filename}"
+
+def uploadvideo(instance, filename):
+    """Generate dynamic upload path for lesson videos based on course/topic/lesson/video_name."""
+    course_href = slugify(instance.lesson.course.href, allow_unicode=True)
+    topic_title = slugify(instance.lesson.topic.title, allow_unicode=True) if instance.lesson.topic else "no-topic"
+    lesson_title = slugify(instance.lesson.title, allow_unicode=True)
+    # Use the original filename for video_name
+    video_name = os.path.basename(filename)
+    return f"videos/{course_href}/{topic_title}/{lesson_title}/{video_name}"
+#------------------------------------------------------------------------------*/
 
 class comment(models.Model):
     body = models.TextField()
@@ -71,6 +84,46 @@ class courses(models.Model):
     discount=models.PositiveSmallIntegerField(default=0)
     def __str__(self):
         return self.href
+
+class Topic(models.Model):
+    title = models.CharField(max_length=255)
+    course = models.ForeignKey(courses, on_delete=models.CASCADE, related_name='topics')
+    order = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        ordering = ['order']
+
+class Lesson(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    topic = models.ForeignKey(
+        Topic,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lessons'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    order = models.PositiveIntegerField(default=0)
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        ordering = ['order']
+
+class LessonVideo(models.Model):
+    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name='video')
+    video_file = models.FileField(upload_to=uploadvideo)
+    duration = models.DurationField(null=True, blank=True, help_text="Duration in seconds")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Video for {self.lesson.title}"
 
 class courseUser(models.Model):
     course = models.ForeignKey(courses,on_delete=models.CASCADE)
