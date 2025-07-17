@@ -71,6 +71,18 @@ class courses(models.Model):
     discount=models.PositiveSmallIntegerField(default=0)
     def __str__(self):
         return self.href
+    
+class Topic(models.Model):
+    title = models.CharField(max_length=255)
+    course = models.ForeignKey(courses, on_delete=models.CASCADE)
+    def __str__(self):
+        return self.title
+
+class lesson(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE)
+    
 
 class courseUser(models.Model):
     course = models.ForeignKey(courses,on_delete=models.CASCADE)
