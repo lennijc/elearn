@@ -9,7 +9,7 @@ UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
 createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
 UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,
 sessionViewSet,getRelatedCourses,contactViewSet,getRelatedSession,
-getDetailSessions,discountCodeCheck,registerUser)
+getDetailSessions,discountCodeCheck,registerUser, lessonViewSet, VideoCreateAPIView, get_topic_sujjestions)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -21,8 +21,10 @@ router.register(r'offs', offViewset,basename="discountCode")
 router.register(r'menus', menuViewSet,basename="menus")
 router.register(r'sessions', sessionViewSet,basename="changeSessions")
 router.register(r'contacts',contactViewSet,basename="contacts")
+router.register(r'lessons',lessonViewSet,basename="lessons")
 
 urlpatterns = [
+    path('', include(router.urls)),
     path("token/",TokenObtainPairView.as_view(),name="login"),
     path("token/refresh/",TokenRefreshView.as_view(),name="refreshToken"),
     path("signup/",RegisterView.as_view()),
@@ -67,4 +69,6 @@ urlpatterns = [
     path('session/detail/<str:href>/<int:pk>/', getDetailSessions.as_view(),name="getRelatedSession"),
     path('off/<str:code>/', discountCodeCheck.as_view(),name="checkDiscountCode"),
     path('register/<str:href>/', registerUser.as_view(),name="registerUserToCourse"),
+    path('course/addLesson/<int:course_id>/', VideoCreateAPIView.as_view(),name="addLesson+Video"),
+    path('course/getTopics/<str:href>/', get_topic_sujjestions.as_view(),name="getTopicSujjestion"),
 ]

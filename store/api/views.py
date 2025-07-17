@@ -7,7 +7,8 @@ from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerialize
     articleSerializer,NavbarCategoriesSerializer,courseuserSerializer,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
     ChangePasswordSerializer,userProfileSerializer,
-    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,contactSerializer)
+    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,
+    contactSerializer, lessonSerializer, VideoLessonSerializer, VideoCreateSerializer, TopicSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -17,7 +18,7 @@ from rest_framework.generics import RetrieveAPIView,CreateAPIView
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.permissions import (IsAuthenticated,IsAuthenticatedOrReadOnly,
                                         IsAdminUser,BasePermission,SAFE_METHODS)
-from ..models import menus,courses,categories,article,courseUser,comment,session,off,contact
+from ..models import menus,courses,categories,article,courseUser,comment,session,off,contact, Lesson, LessonVideo, Topic
 from authentication.models import banUser
 from django.db import models
 from django.db import IntegrityError
@@ -30,6 +31,12 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 import os
+from django.core.cache import cache
+from django.db import transaction
+import boto3
+from botocore.client import Config
+from django.conf import settings
+
 
 user = get_user_model()
 
@@ -608,16 +615,62 @@ class registerUser(APIView):
             except:
                 return Response({"error":"something went wronge or you have already enrolled in this course"},status=status.HTTP_402_PAYMENT_REQUIRED)
             
-        
-            
-        
-        
-        
-        
+class lessonViewSet(viewsets.ModelViewSet):
+    serializer_class = lessonSerializer
+    def get_queryset(self):
+        return Lesson.objects.all().prefetch_related('video').select_related('topic')
+
+
         
 
-    
-    
+class VideoCreateAPIView(APIView):
+    def post(self, request, course_id, *args, **kwargs):
+        # Validate course exists
+        try:
+            course = courses.objects.get(id=course_id)
+        except courses.DoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Validate request data
+        serializer = VideoCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Extract validated data
+        topic_title = serializer.validated_data['topic_title']
+        lesson_title = serializer.validated_data['lesson_title']
+
+
+        # Create or get topic
+        topic, _ = Topic.objects.get_or_create(
+            title=topic_title,
+            course=course,
+        )
+
+        # Create lesson
+        lesson, _ = Lesson.objects.get_create(
+            title=lesson_title,
+            topic=topic
+        )
+
+        # Check if lesson already has a video
+        if hasattr(lesson, 'video'):
+            return Response(
+                {"error": "This lesson already has a video"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create video (transaction to ensure atomicity)
+        with transaction.atomic():
+            video = LessonVideo.objects.create(
+                lesson=lesson,
+                video_file=lesson.video.video_files,
+            )
+        return lesson.video 
+
+class get_topic_sujjestions(ListAPIView):
+    serializer_class = TopicSerializer
+    def get_queryset(self):
+        return Topic.objects.filter(course=courses.objects.get(href=self.kwargs['href']).id)
     
 
     
