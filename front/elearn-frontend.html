@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course and Topic Suggestions Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .input-group {
+      margin-bottom: 10px;
+      position: relative; /* For positioning suggestion list */
+    }
+    input {
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #statusMessage {
+      margin-top: 10px;
+      color: #333;
+    }
+    #topicSuggestionList, #lessonSuggestionList {
+      border: 1px solid #ccc;
+      max-height: 150px;
+      overflow-y: auto;
+      background: #fff;
+      display: none; /* Hidden by default */
+      position: absolute;
+      width: calc(100% - 16px); /* Match input width minus padding */
+      z-index: 1000;
+      top: 100%; /* Position below field */
+    }
+    #topicSuggestionList ul, #lessonSuggestionList ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    #topicSuggestionList li, #lessonSuggestionList li {
+      padding: 8px;
+      cursor: pointer;
+    }
+    #topicSuggestionList li:hover, #lessonSuggestionList li:hover {
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <form id="courseForm">
+    <div class="input-group">
+      <label for="courseField">Course:</label>
+      <input type="text" id="courseField" name="course" placeholder="Type course name...">
+    </div>
+    <div class="input-group">
+      <label for="topicField">Topic:</label>
+      <input type="text" id="topicField" name="topic" placeholder="Select a topic...">
+      <div id="topicSuggestionList">
+        <ul id="topicSuggestionItems"></ul>
+      </div>
+    </div>
+    <div class="input-group">
+      <label for="LessonField">Lesson:</label>
+      <input type="text" id="LessonField" name="lesson" placeholder="Select a lesson or type a new one ...">
+      <div id="lessonSuggestionList">
+        <ul id="lessonSuggestionItems"></ul>
+      </div>
+    </div>
+    <button type="submit">Submit</button>
+  </form>
+  <div id="statusMessage"></div>
+
+  <script>
+    const isPlainObject = (obj) => {
+      return obj !== null && typeof obj === 'object' && obj.constructor === Object;
+    };
+
+    const courseField = document.getElementById('courseField');
+    const topicField = document.getElementById('topicField');
+    const lessonField = document.getElementById('LessonField');
+    const courseForm = document.getElementById('courseForm');
+    const statusMessage = document.getElementById('statusMessage');
+    const topicSuggestionList = document.getElementById('topicSuggestionList');
+    const topicSuggestionItems = document.getElementById('topicSuggestionItems');
+    const lessonSuggestionList = document.getElementById('lessonSuggestionList');
+    const lessonSuggestionItems = document.getElementById('lessonSuggestionItems');
+
+    // Cache for topic suggestions
+    let topicCachedSuggestions = [];
+    let topicLastQuery = '';
+
+    // Cache for lesson suggestions
+    let lessonCachedSuggestions = [];
+    let lessonLastQuery = '';
+
+    // API function for topic suggestions
+    async function fetchTopicSuggestions(query) {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/course/getTopics/${query}/`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        const suggestions = data.map(item => ({
+          [item.order]: [item.title],
+        }));
+        return suggestions.length > 0 ? suggestions : ['No topic suggestions available'];
+      } catch (error) {
+        console.error('Error fetching topic suggestions:', error);
+        return ['Error fetching topic suggestions'];
+      }
+    }
+
+    // API function for lesson suggestions
+    async function fetchLessonSuggestions(query) {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/course/getLessons/${query}/`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        const suggestions = data.map(item => ({
+          [item.order]: [item.title],
+        }));
+        return suggestions.length > 0 ? suggestions : ['No lesson suggestions available'];
+      } catch (error) {
+        console.error('Error fetching lesson suggestions:', error);
+        return ['Error fetching lesson suggestions'];
+      }
+    }
+
+    // Function to populate suggestion list
+    function populateSuggestions(suggestionList, suggestionItems, suggestions, targetField) {
+      suggestionItems.innerHTML = '';
+      if (!isPlainObject(suggestions) && (String(suggestions[0]).startsWith('No ') || String(suggestions[0]).startsWith('Error '))) {
+        suggestionList.style.display = 'none';
+        targetField.value = '';
+        return;
+      }
+      suggestions.forEach(suggestion => {
+        const li = document.createElement('li');
+        let suggestion_value = Object.values(suggestion)[0];
+        li.textContent = Object.keys(suggestion)[0] + '_' + suggestion_value;
+        li.addEventListener('click', async () => {
+          targetField.value = suggestion_value;
+          suggestionList.style.display = 'none';
+          if (targetField === topicField) {
+            const query = String(suggestion_value).trim();
+            if (query.length >= 3) {
+              try {
+                const lessonSuggestions = await fetchLessonSuggestions(query);
+                lessonCachedSuggestions = lessonSuggestions;
+                lessonLastQuery = query;
+                populateSuggestions(lessonSuggestionList, lessonSuggestionItems, lessonSuggestions, lessonField);
+              } catch (error) {
+                console.error('Error fetching lesson suggestions:', error);
+                lessonCachedSuggestions = ['Error fetching lesson suggestions'];
+                lessonLastQuery = query;
+                populateSuggestions(lessonSuggestionList, lessonSuggestionItems, lessonCachedSuggestions, lessonField);
+              }
+            } else {
+              lessonCachedSuggestions = [];
+              lessonLastQuery = '';
+              lessonSuggestionItems.innerHTML = '';
+              lessonSuggestionList.style.display = 'none';
+              lessonField.value = '';
+            }
+          }
+        });
+        suggestionItems.appendChild(li);
+      });
+      suggestionList.style.display = 'block';
+    }
+
+    // Event listener for keyup on course field (for topic suggestions)
+    courseField.addEventListener('keyup', async () => {
+      const query = courseField.value.trim();
+      if (query.length >= 3) {
+        try {
+          const suggestions = await fetchTopicSuggestions(query);
+          topicCachedSuggestions = suggestions;
+          topicLastQuery = query;
+          populateSuggestions(topicSuggestionList, topicSuggestionItems, suggestions, topicField);
+          lessonCachedSuggestions = [];
+          lessonLastQuery = '';
+          lessonSuggestionItems.innerHTML = '';
+          lessonSuggestionList.style.display = 'none';
+          lessonField.value = '';
+        } catch (error) {
+          console.error('Error fetching topic suggestions:', error);
+          topicCachedSuggestions = ['Error fetching topic suggestions'];
+          topicLastQuery = query;
+          populateSuggestions(topicSuggestionList, topicSuggestionItems, topicCachedSuggestions, topicField);
+        }
+      } else {
+        topicCachedSuggestions = [];
+        topicLastQuery = '';
+        topicSuggestionItems.innerHTML = '';
+        topicSuggestionList.style.display = 'none';
+        topicField.value = '';
+        lessonCachedSuggestions = [];
+        lessonLastQuery = '';
+        lessonSuggestionItems.innerHTML = '';
+        lessonSuggestionList.style.display = 'none';
+        lessonField.value = '';
+      }
+    });
+
+    // Event listener for keyup on topic field (for lesson suggestions)
+    topicField.addEventListener('keyup', async () => {
+      const query = topicField.value.trim();
+      if (query.length >= 3) {
+        try {
+          const suggestions = await fetchLessonSuggestions(query);
+          lessonCachedSuggestions = suggestions;
+          lessonLastQuery = query;
+          populateSuggestions(lessonSuggestionList, lessonSuggestionItems, suggestions, lessonField);
+        } catch (error) {
+          console.error('Error fetching lesson suggestions:', error);
+          lessonCachedSuggestions = ['Error fetching lesson suggestions'];
+          lessonLastQuery = query;
+          populateSuggestions(lessonSuggestionList, lessonSuggestionItems, lessonCachedSuggestions, lessonField);
+        }
+      } else {
+        lessonCachedSuggestions = [];
+        lessonLastQuery = '';
+        lessonSuggestionItems.innerHTML = '';
+        lessonSuggestionList.style.display = 'none';
+        lessonField.value = '';
+      }
+    });
+
+    // Event listener for focus on topic field
+    topicField.addEventListener('focus', () => {
+      if (topicCachedSuggestions.length > 0 && courseField.value.trim() === topicLastQuery) {
+        populateSuggestions(topicSuggestionList, topicSuggestionItems, topicCachedSuggestions, topicField);
+      }
+    });
+
+    // Event listener for focus on lesson field
+    lessonField.addEventListener('focus', () => {
+      if (lessonCachedSuggestions.length > 0 && topicField.value.trim() === lessonLastQuery) {
+        populateSuggestions(lessonSuggestionList, lessonSuggestionItems, lessonCachedSuggestions, lessonField);
+      }
+    });
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (event) => {
+      if (!courseField.contains(event.target) && !topicField.contains(event.target) && !topicSuggestionList.contains(event.target)) {
+        topicSuggestionList.style.display = 'none';
+      }
+      if (!topicField.contains(event.target) && !lessonField.contains(event.target) && !lessonSuggestionList.contains(event.target)) {
+        lessonSuggestionList.style.display = 'none';
+      }
+    });
+
+    // Event listener for form submission
+    courseForm.addEventListener('submit', async (event) => {
+      event.preventDefault(); // Prevent default form submission
+      const formData = {
+        course: courseField.value.trim(),
+        topic: topicField.value.trim(),
+        lesson: lessonField.value.trim()
+      };
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/course/addLesson/${courseField.value}/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        statusMessage.textContent = 'Submission successful!';
+        statusMessage.style.color = 'green';
+        // Optionally clear the form
+        courseForm.reset();
+        topicCachedSuggestions = [];
+        lessonCachedSuggestions = [];
+        topicSuggestionItems.innerHTML = '';
+        lessonSuggestionItems.innerHTML = '';
+        topicSuggestionList.style.display = 'none';
+        lessonSuggestionList.style.display = 'none';
+      } catch (error) {
+        console.error('Error submitting form:', error);
+        statusMessage.textContent = 'Error submitting form. Please try again.';
+        statusMessage.style.color = 'red';
+      }
+    });
+  </script>
+</body>
+</html>

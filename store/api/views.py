@@ -624,20 +624,22 @@ class lessonViewSet(viewsets.ModelViewSet):
         
 
 class VideoCreateAPIView(APIView):
-    def post(self, request, course_id, *args, **kwargs):
+    def post(self, request, course_href, *args, **kwargs):
         # Validate course exists
         try:
-            course = courses.objects.get(id=course_id)
+            course = courses.objects.get(href=course_href)
         except courses.DoesNotExist:
             return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        print("request.data is : ",request.data)
 
         # Validate request data
         serializer = VideoCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         # Extract validated data
-        topic_title = serializer.validated_data['topic_title']
-        lesson_title = serializer.validated_data['lesson_title']
+        topic_title = serializer.validated_data['topic']
+        lesson_title = serializer.validated_data['lesson']
 
 
         # Create or get topic
@@ -647,7 +649,7 @@ class VideoCreateAPIView(APIView):
         )
 
         # Create lesson
-        lesson, _ = Lesson.objects.get_create(
+        lesson, _ = Lesson.objects.get_or_create(
             title=lesson_title,
             topic=topic
         )
@@ -660,18 +662,21 @@ class VideoCreateAPIView(APIView):
             )
 
         # Create video (transaction to ensure atomicity)
-        with transaction.atomic():
-            video = LessonVideo.objects.create(
-                lesson=lesson,
-                video_file=lesson.video.video_files,
-            )
-        return lesson.video 
+        LessonVideo.objects.create(lesson=lesson)
+        lesson_serializer = lessonSerializer(lesson)
+        return Response(lesson_serializer.data, status=status.HTTP_201_CREATED) 
 
-class get_topic_sujjestions(ListAPIView):
+class get_topic_suggestions(ListAPIView):
     serializer_class = TopicSerializer
     def get_queryset(self):
-        return Topic.objects.filter(course=courses.objects.get(href=self.kwargs['href']).id)
+        course_obj = get_object_or_404(courses, href=self.kwargs['href'])
+        return Topic.objects.filter(course=course_obj.id)
     
+class get_lesson_suggestions(ListAPIView):
+    serializer_class = lessonSerializer
+    def get_queryset(self):
+        topic_obj = get_object_or_404(Topic, title=self.kwargs['topic_title'])
+        return Lesson.objects.filter(topic=topic_obj)
 
     
     

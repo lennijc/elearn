@@ -9,7 +9,7 @@ UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
 createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
 UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,
 sessionViewSet,getRelatedCourses,contactViewSet,getRelatedSession,
-getDetailSessions,discountCodeCheck,registerUser, lessonViewSet, VideoCreateAPIView, get_topic_sujjestions)
+getDetailSessions,discountCodeCheck,registerUser, lessonViewSet, VideoCreateAPIView, get_topic_suggestions, get_lesson_suggestions)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -69,6 +69,7 @@ urlpatterns = [
     path('session/detail/<str:href>/<int:pk>/', getDetailSessions.as_view(),name="getRelatedSession"),
     path('off/<str:code>/', discountCodeCheck.as_view(),name="checkDiscountCode"),
     path('register/<str:href>/', registerUser.as_view(),name="registerUserToCourse"),
-    path('course/addLesson/<int:course_id>/', VideoCreateAPIView.as_view(),name="addLesson+Video"),
-    path('course/getTopics/<str:href>/', get_topic_sujjestions.as_view(),name="getTopicSujjestion"),
+    path('course/addLesson/<str:course_href>/', VideoCreateAPIView.as_view(),name="addLesson+Video"),
+    path('course/getTopics/<str:href>/', get_topic_suggestions.as_view(),name="getTopicSuggestion"),
+    path('course/getLessons/<str:topic_title>/', get_lesson_suggestions.as_view(),name="getLessonSuggestion"),
 ]
