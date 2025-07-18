@@ -5,3 +5,7 @@ Pipfile.lock
 venv/
 prometheus.yml
 *workspace
+db.sqlite3
+media/
+..venv/
+..db.sqlite3
