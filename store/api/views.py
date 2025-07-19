@@ -7,7 +7,7 @@ from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerialize
     articleSerializer,NavbarCategoriesSerializer,courseuserSerializer,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
     ChangePasswordSerializer,userProfileSerializer,
-    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,contactSerializer, lessonSerializer, VideoLessonSerializer, VideoCreateSerializer)
+    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,contactSerializer, lessonSerializer, VideoLessonSerializer, VideoCreateSerializer, topicSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -619,15 +619,12 @@ class lessonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Lesson.objects.all().prefetch_related('video').select_related('topic')
 
-
-        
-
 class VideoCreateAPIView(APIView):
     def post(self, request, course_id, *args, **kwargs):
         # Validate course exists
         try:
-            course = Course.objects.get(id=course_id)
-        except Course.DoesNotExist:
+            course = courses.objects.get(id=course_id)
+        except courses.DoesNotExist:
             return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Validate request data
@@ -637,24 +634,28 @@ class VideoCreateAPIView(APIView):
         # Extract validated data
         topic_title = serializer.validated_data['topic_title']
         lesson_title = serializer.validated_data['lesson_title']
-        video_title = serializer.validated_data['video_title']
+        video_title = serializer.validated_data['video_title'] if hasattr(serializer.validated_data, 'video_title') else None
 
 
         # Create or get topic
         topic, _ = Topic.objects.get_or_create(
             title=topic_title,
             course=course,
-            defaults={'created_at': None}
         )
+        print("topic is : ", topic, 'created is  : ', _ )
 
         # Create lesson
-        lesson = Lesson.objects.create(
+        lesson, _ = Lesson.objects.get_or_create(
             title=lesson_title,
             topic=topic
         )
 
+        print("topic is : ", lesson, 'created is  : ', _ )
+
+
         # Check if lesson already has a video
-        if hasattr(lesson, 'video'):
+        print(lesson.video.video_file)
+        if hasattr(lesson, 'video') and lesson.video.video_file == 'default/defImage.png':
             return Response(
                 {"error": "This lesson already has a video"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -662,29 +663,12 @@ class VideoCreateAPIView(APIView):
 
         # Create video (transaction to ensure atomicity)
         with transaction.atomic():
-            video = Video.objects.create(
+            video = LessonVideo.objects.create(
                 lesson=lesson,
-                title=video_title,
-                video_file=video_file,
-                duration=duration,
-                is_public=is_public
             )
-
-        # Cache video metadata
-        cache_key = f'video_{video.id}'
-        cache.set(cache_key, {
-            'id': video.id,
-            'title': video.title,
-            'lesson_id': video.lesson_id,
-            'is_public': video.is_public
-        }, timeout=86400)
-
-        # Get video URL
-        video_url = video.video_file.url if video.is_public else self.get_signed_url(video)
-
         return Response(
             {
-                'video_url': video_url,
+                'video_url': video.video_file.url,
                 'video_id': video.id,
                 'lesson_id': lesson.id,
                 'topic_id': topic.id
@@ -692,24 +676,13 @@ class VideoCreateAPIView(APIView):
             status=status.HTTP_201_CREATED
         )
 
-    def get_signed_url(self, video):
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME,
-            config=Config(signature_version='s3v4')
-        )
-        cache_key = f'video_url_{video.id}'
-        video_url = cache.get(cache_key)
-        if not video_url:
-            video_url = s3_client.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': video.video_file.name},
-                ExpiresIn=3600
-            )
-            cache.set(cache_key, video_url, timeout=3600)
-        return video_url 
+class get_topic_sujjestion_by_course_id(ListAPIView):
+    serializer_class = topicSerializer
+    def get_queryset(self):
+        print("self.kwargs is : ", self.kwargs)
+        return Topic.objects.filter(course=self.kwargs['course_id'])
+        
+
     
     
 

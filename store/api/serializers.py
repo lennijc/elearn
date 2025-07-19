@@ -306,14 +306,18 @@ class VideoLessonSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class lessonSerializer(serializers.ModelSerializer):
-    video = VideoLessonSerializer(read_only=True, many=True)
+    video = VideoLessonSerializer(read_only=True)
     topic = serializers.SlugRelatedField(slug_field='title', read_only=True)
     class Meta:
         model = Lesson
         fields = "__all__"
 
+class topicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Topic
+        fields = "__all__"
+
 class VideoCreateSerializer(serializers.Serializer):
     topic_title = serializers.CharField(max_length=200)
     lesson_title = serializers.CharField(max_length=200)
-    video_title = serializers.CharField(max_length=200)
-    
+    video_title = serializers.CharField(max_length=200, required=False)

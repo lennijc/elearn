@@ -117,7 +117,7 @@ class Lesson(models.Model):
 
 class LessonVideo(models.Model):
     lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name='video')
-    video_file = models.FileField(upload_to=uploadvideo)
+    video_file = models.FileField(upload_to=uploadvideo, default='default/defImage.png')
     duration = models.DurationField(null=True, blank=True, help_text="Duration in seconds")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
