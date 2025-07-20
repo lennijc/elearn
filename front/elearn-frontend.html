@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Upload with Course and Topic</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .input-group {
+      margin-bottom: 10px;
+      position: relative;
+    }
+    input {
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #statusMessage {
+      margin-top: 10px;
+      color: #333;
+    }
+    #topicSuggestionList, #lessonSuggestionList {
+      border: 1px solid #ccc;
+      max-height: 150px;
+      overflow-y: auto;
+      background: #fff;
+      display: none;
+      position: absolute;
+      width: calc(100% - 16px);
+      z-index: 1000;
+      top: 100%;
+    }
+    #topicSuggestionList ul, #lessonSuggestionList ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    #topicSuggestionList li, #lessonSuggestionList li {
+      padding: 8px;
+      cursor: pointer;
+    }
+    #topicSuggestionList li:hover, #lessonSuggestionList li:hover {
+      background: #f0f0f0;
+    }
+    #fileUploadSection {
+      display: none; /* Hidden initially */
+    }
+  </style>
+</head>
+<body>
+  <form id="lessonForm">
+    <div class="input-group">
+      <label for="courseField">Course Href:</label>
+      <input type="text" id="courseField" name="course_href" placeholder="Enter course href (e.g., course-123)" required>
+    </div>
+    <div class="input-group">
+      <label for="topicField">Topic Title:</label>
+      <input type="text" id="topicField" name="topic_title" placeholder="Select or enter topic title" required>
+      <div id="topicSuggestionList">
+        <ul id="topicSuggestionItems"></ul>
+      </div>
+    </div>
+    <div class="input-group">
+      <label for="lessonField">Lesson Title:</label>
+      <input type="text" id="lessonField" name="lesson_title" placeholder="Select or enter lesson title" required>
+      <div id="lessonSuggestionList">
+        <ul id="lessonSuggestionItems"></ul>
+      </div>
+    </div>
+    <button type="submit">Create Lesson</button>
+  </form>
+
+  <form id="uploadForm" enctype="multipart/form-data">
+    <div id="fileUploadSection" class="input-group">
+      <label for="fileInput">Select Video File:</label>
+      <input type="file" id="fileInput" name="video_file" accept="video/mp4,video/avi,video/mov,audio/mpeg" required>
+      <button type="submit">Submit File</button>
+    </div>
+  </form>
+
+  <div id="statusMessage"></div>
+
+  <script>
+    // Replace with your actual auth token (e.g., from localStorage or login flow)
+    const AUTH_TOKEN = 'your-jwt-token-here'; // Example: 'Bearer your-token'
+
+    const lessonForm = document.getElementById('lessonForm');
+    const uploadForm = document.getElementById('uploadForm');
+    const courseField = document.getElementById('courseField');
+    const topicField = document.getElementById('topicField');
+    const lessonField = document.getElementById('lessonField');
+    const fileInput = document.getElementById('fileInput');
+    const fileUploadSection = document.getElementById('fileUploadSection');
+    const statusMessage = document.getElementById('statusMessage');
+    const topicSuggestionList = document.getElementById('topicSuggestionList');
+    const topicSuggestionItems = document.getElementById('topicSuggestionItems');
+    const lessonSuggestionList = document.getElementById('lessonSuggestionList');
+    const lessonSuggestionItems = document.getElementById('lessonSuggestionItems');
+
+    const BASE_URL = 'http://127.0.0.1:8000'; // Adjust if your backend is hosted elsewhere
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    const ALLOWED_TYPES = ['video/mp4', 'video/avi', 'video/mov', 'audio/mpeg'];
+
+    let lessonId = null; // Store lesson ID after creation
+    let topicCachedSuggestions = [];
+    let topicLastQuery = '';
+    let lessonCachedSuggestions = [];
+    let lessonLastQuery = '';
+
+    const isPlainObject = (obj) => {
+      return obj !== null && typeof obj === 'object' && obj.constructor === Object;
+    };
+
+    const debounce = (func, wait) => {
+      let timeout;
+      return function (...args) {
+        console.log('Debouncing keyup event');
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          console.log('Executing debounced function');
+          func.apply(this, args);
+        }, wait);
+      };
+    };
+
+    async function fetchTopicSuggestions(query) {
+      console.log(`Fetching topic suggestions for query: "${query}"`);
+      try { 
+        const response = await fetch(`${BASE_URL}/api/course/getTopics/${encodeURIComponent(query)}/`, {
+        });
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        const suggestions = data.map(item => ({
+          [item.order]: [item.title],
+        }));
+        console.log('Topic suggestions:', suggestions);
+        return suggestions.length > 0 ? suggestions : ['No topic suggestions available'];
+      } catch (error) {
+        console.error('Error fetching topic suggestions:', error);
+        console.log('Returning cached topic suggestions:', topicCachedSuggestions);
+        return topicCachedSuggestions.length > 0 ? topicCachedSuggestions : ['Error fetching topic suggestions'];
+      }
+    }
+
+    async function fetchLessonSuggestions(query) {
+      console.log(`Fetching lesson suggestions for query: "${query}"`);
+      try {
+        const response = await fetch(`${BASE_URL}/api/course/getLessons/${encodeURIComponent(query)}/`, {
+          // headers: { 'Authorization': AUTH_TOKEN },
+        });
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        const suggestions = data.map(item => ({
+          [item.order]: [item.title],
+        }));
+        console.log('Lesson suggestions:', suggestions);
+        return suggestions.length > 0 ? suggestions : ['No lesson suggestions available'];
+      } catch (error) {
+        console.error('Error fetching lesson suggestions:', error);
+        console.log('Returning cached lesson suggestions:', lessonCachedSuggestions);
+        return lessonCachedSuggestions.length > 0 ? lessonCachedSuggestions : ['Error fetching lesson suggestions'];
+      }
+    }
+
+    function populateSuggestions(suggestionList, suggestionItems, suggestions, targetField) {
+      console.log(`Populating suggestions for ${targetField.id}:`, suggestions);
+      if (!isPlainObject(suggestions) && (String(suggestions[0]).startsWith('No ') || String(suggestions[0]).startsWith('Error '))) {
+        suggestionList.style.display = 'none';
+        console.log(`${targetField.id} suggestion list hidden due to no suggestions or error`);
+        return;
+      }
+      suggestionItems.innerHTML = '';
+      suggestions.forEach(suggestion => {
+        const li = document.createElement('li');
+        let suggestion_value = Object.values(suggestion)[0];
+        li.textContent = Object.keys(suggestion)[0] + '_' + suggestion_value;
+        li.addEventListener('click', async () => {
+          console.log(`Selected suggestion for ${targetField.id}: ${suggestion_value}`);
+          targetField.value = suggestion_value;
+          suggestionList.style.display = 'none';
+          if (targetField === topicField && lessonField.value) {
+            console.log('Prompting to clear lesson field because topic was selected');
+            const clearLesson = confirm('New topic selected. Clear lesson field?');
+            if (clearLesson) {
+              lessonField.value = '';
+              lessonCachedSuggestions = [];
+              lessonLastQuery = '';
+              lessonSuggestionItems.innerHTML = '';
+              lessonSuggestionList.style.display = 'none';
+            }
+          }
+          if (targetField === topicField) {
+            const query = String(suggestion_value).trim();
+            if (query.length >= 3) {
+              try {
+                const lessonSuggestions = await fetchLessonSuggestions(query);
+                lessonCachedSuggestions = lessonSuggestions;
+                lessonLastQuery = query;
+                populateSuggestions(lessonSuggestionList, lessonSuggestionItems, lessonSuggestions, lessonField);
+              } catch (error) {
+                console.error('Error fetching lesson suggestions:', error);
+                lessonCachedSuggestions = lessonCachedSuggestions.length > 0 ? lessonCachedSuggestions : ['Error fetching lesson suggestions'];
+                lessonLastQuery = query;
+                populateSuggestions(lessonSuggestionList, lessonSuggestionItems, lessonCachedSuggestions, lessonField);
+              }
+            }
+          }
+          console.log('Current field values after suggestion selection:', {
+            course: courseField.value,
+            topic: topicField.value,
+            lesson: lessonField.value
+          });
+        });
+        suggestionItems.appendChild(li);
+      });
+      suggestionList.style.display = suggestions.length > 0 ? 'block' : 'none';
+      console.log(`${targetField.id} suggestion list display:`, suggestionList.style.display);
+    }
+
+    courseField.addEventListener('keyup', debounce(async () => {
+      console.log('Course keyup:', {
+        course: courseField.value,
+        topic: topicField.value,
+        lesson: lessonField.value
+      });
+      const query = courseField.value.trim();
+      if (query.length >= 3) {
+        try {
+          const suggestions = await fetchTopicSuggestions(query);
+          topicCachedSuggestions = suggestions;
+          topicLastQuery = query;
+          populateSuggestions(topicSuggestionList, topicSuggestionItems, suggestions, topicField);
+        } catch (error) {
+          console.error('Error fetching topic suggestions:', error);
+          populateSuggestions(topicSuggestionList, topicSuggestionItems, topicCachedSuggestions, topicField);
+        }
+      }
+      console.log('Course keyup complete, field values:', {
+        course: courseField.value,
+        topic: topicField.value,
+        lesson: lessonField.value
+      });
+    }, 1000));
+
+    topicField.addEventListener('keyup', debounce(async () => {
+      console.log('Topic keyup:', {
+        course: courseField.value,
+        topic: topicField.value,
+        lesson: lessonField.value
+      });
+      const query = topicField.value.trim();
+      if (query.length >= 3) {
+        try {
+          const suggestions = await fetchLessonSuggestions(query);
+          lessonCachedSuggestions = suggestions;
+          lessonLastQuery = query;
+          populateSuggestions(lessonSuggestionList, lessonSuggestionItems, suggestions, lessonField);
+        } catch (error) {
+          console.error('Error fetching lesson suggestions:', error);
+          populateSuggestions(lessonSuggestionList, lessonSuggestionItems, lessonCachedSuggestions, lessonField);
+        }
+      }
+      console.log('Topic keyup complete, field values:', {
+        course: courseField.value,
+        topic: topicField.value,
+        lesson: lessonField.value
+      });
+    }, 1000));
+
+    topicField.addEventListener('focus', () => {
+      console.log('Topic focus:', {
+        course: courseField.value,
+        topic: topicField.value,
+        lesson: lessonField.value
+      });
+      if (topicCachedSuggestions.length > 0 && courseField.value.trim() === topicLastQuery) {
+        populateSuggestions(topicSuggestionList, topicSuggestionItems, topicCachedSuggestions, topicField);
+      }
+    });
+
+    lessonField.addEventListener('focus', () => {
+      console.log('Lesson focus:', {
+        course: courseField.value,
+        topic: topicField.value,
+        lesson: lessonField.value
+      });
+      if (lessonCachedSuggestions.length > 0 && topicField.value.trim() === lessonLastQuery) {
+        populateSuggestions(lessonSuggestionList, lessonSuggestionItems, lessonCachedSuggestions, lessonField);
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      console.log('Document click:', {
+        course: courseField.value,
+        topic: topicField.value,
+        lesson: lessonField.value,
+        target: event.target.id || event.target.tagName
+      });
+      if (!courseField.contains(event.target) && !topicField.contains(event.target) && !topicSuggestionList.contains(event.target)) {
+        topicSuggestionList.style.display = 'none';
+        console.log('Hiding topic suggestion list');
+      }
+      if (!topicField.contains(event.target) && !lessonField.contains(event.target) && !lessonSuggestionList.contains(event.target)) {
+        lessonSuggestionList.style.display = 'none';
+        console.log('Hiding lesson suggestion list');
+      }
+    });
+
+    // Handle lesson creation
+    lessonForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      statusMessage.textContent = 'Creating lesson...';
+      statusMessage.style.color = '#333';
+      console.log('Lesson form submit:', {
+        course_href: courseField.value,
+        topic_title: topicField.value,
+        lesson_title: lessonField.value,
+      });
+
+      if (!courseField.value.trim() || !topicField.value.trim() || !lessonField.value.trim()) {
+        statusMessage.textContent = 'Course href, topic title, and lesson title are required';
+        statusMessage.style.color = 'red';
+        console.log('Error: Missing required fields');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/course/addLesson/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            course: courseField.value.trim(),
+            topic: topicField.value.trim(),
+            lesson: lessonField.value.trim(),
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.log('error data is : ' , errorData);
+          statusMessage.textContent = errorData || 'Failed to create lesson';
+          statusMessage.style.color = 'red';
+          console.log('Error creating lesson:', errorData);
+          return;
+        }
+
+        const lessonData = await response.json();
+        lessonId = lessonData.id;
+        console.log('Lesson created:', lessonData);
+
+        // Hide lesson form and show upload section
+        lessonForm.style.display = 'none';
+        fileUploadSection.style.display = 'block';
+        statusMessage.textContent = 'Lesson created successfully! Please select a file to upload.';
+        statusMessage.style.color = 'green';
+      } catch (error) {
+        statusMessage.textContent = 'Error: ' + error.message;
+        statusMessage.style.color = 'red';
+        console.log('Lesson creation error:', error);
+      }
+    });
+
+    // Handle file upload
+    uploadForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      statusMessage.textContent = 'Processing file upload...';
+      statusMessage.style.color = '#333';
+      console.log('Upload form submit:', {
+        lesson_id: lessonId,
+        file: fileInput.files[0]?.name,
+      });
+
+      const file = fileInput.files[0];
+      if (!file) {
+        statusMessage.textContent = 'No file selected';
+        statusMessage.style.color = 'red';
+        console.log('Error: No file selected');
+        return;
+      }
+
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        statusMessage.textContent = 'Unsupported file type. Allowed: mp4, avi, mov, mp3';
+        statusMessage.style.color = 'red';
+        console.log('Error: Unsupported file type:', file.type);
+        return;
+      }
+
+      try {
+        if (file.size <= MAX_FILE_SIZE) {
+          // Server-side upload for small files
+          statusMessage.textContent = 'Uploading file to server...';
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('file_name', file.name);
+          formData.append('file_type', file.type);
+          formData.append('file_size', file.size);
+
+          console.log('Uploading small file to server:', {
+            lesson_id: lessonId,
+            file_name: file.name,
+            file_size: file.size,
+            file_type: file.type,
+          });
+
+          const uploadResponse = await fetch(`${BASE_URL}/api/upload/server/${lessonId}/`, {
+            method: 'POST',
+            headers: {
+              // 'Authorization': AUTH_TOKEN,
+            },
+            body: formData,
+          });
+
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            statusMessage.textContent = errorData.error || 'Server upload failed';
+            statusMessage.style.color = 'red';
+            console.log('Error uploading to server:', errorData);
+            return;
+          }
+
+          const uploadResult = await uploadResponse.json();
+          statusMessage.textContent = `File uploaded successfully: ${uploadResult.file_url}`;
+          statusMessage.style.color = 'green';
+          console.log('Server upload success:', uploadResult);
+        } else {
+          // Client-side upload for large files
+          statusMessage.textContent = 'Requesting presigned URL...';
+          const metadata = {
+            file_name: file.name,
+            file_size: file.size,
+            file_type: file.type,
+          };
+
+          console.log('Requesting presigned URL for:', {
+            lesson_id: lessonId,
+            ...metadata,
+          });
+
+          const presignedResponse = await fetch(`${BASE_URL}/api/upload/client/${lessonId}/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(metadata),
+          });
+
+          if (!presignedResponse.ok) {
+            const errorData = await presignedResponse.json();
+            statusMessage.textContent = errorData.error || 'Failed to get presigned URL';
+            statusMessage.style.color = 'red';
+            console.log('Error getting presigned URL:', errorData);
+            return;
+          }
+
+          const { presigned_url } = await presignedResponse.json();
+          statusMessage.textContent = 'Uploading large file to S3...';
+          console.log('Uploading to S3 with presigned URL:', presigned_url);
+
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', presigned_url);
+          xhr.setRequestHeader('Content-Type', file.type);
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              statusMessage.textContent = `Uploading large file: ${percent}%`;
+            }
+          };
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              statusMessage.textContent = 'Large file uploaded to S3 successfully!';
+              statusMessage.style.color = 'green';
+              console.log('S3 upload success');
+            } else {
+              statusMessage.textContent = 'Error uploading to S3';
+              statusMessage.style.color = 'red';
+              console.log('S3 upload error:', xhr.status);
+            }
+          };
+          xhr.onerror = () => {
+            statusMessage.textContent = 'Error uploading to S3';
+            statusMessage.style.color = 'red';
+            console.log('S3 upload error: Network issue');
+          };
+          xhr.send(file);
+        }
+
+        // Reset forms and show lesson creation form again
+        lessonForm.style.display = 'block';
+        fileUploadSection.style.display = 'none';
+        lessonForm.reset();
+        uploadForm.reset();
+        lessonId = null;
+        topicCachedSuggestions = [];
+        lessonCachedSuggestions = [];
+        topicSuggestionList.style.display = 'none';
+        lessonSuggestionList.style.display = 'none';
+        console.log('Forms reset after successful upload');
+      } catch (error) {
+        statusMessage.textContent = 'Error: ' + error.message;
+        statusMessage.style.color = 'red';
+        console.log('Upload error:', error);
+      }
+    });
+  </script>
+</body>
+</html>

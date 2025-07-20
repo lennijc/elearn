@@ -7,7 +7,9 @@ from.serializers import (UserRegistrationSerializer,UserSerializer,menuSerialize
     articleSerializer,NavbarCategoriesSerializer,courseuserSerializer,courseInfoSerializer,commentSerializer,AllCourseSerializer,
     ContactSerializer,articleInfoSerializer,AllArticleSerializer,categorySubMenu,EmailSerializer,
     ChangePasswordSerializer,userProfileSerializer,
-    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,contactSerializer, lessonSerializer, VideoLessonSerializer, VideoCreateSerializer, topicSerializer)
+    answerCommentSerializer,offSerializer,sessionSerializer,simpleSessionSerialzier,
+    contactSerializer, lessonSerializer, VideoLessonSerializer
+    , TopicSerializer, createLessonSerializer, createVideoSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -35,6 +37,9 @@ from django.db import transaction
 import boto3
 from botocore.client import Config
 from django.conf import settings
+import boto3
+from django.conf import settings
+from storages.backends.s3boto3 import S3Boto3Storage
 
 
 user = get_user_model()
@@ -619,22 +624,26 @@ class lessonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Lesson.objects.all().prefetch_related('video').select_related('topic')
 
-class VideoCreateAPIView(APIView):
-    def post(self, request, course_id, *args, **kwargs):
+            
+class addLesson(APIView):
+    def post(self, request, *args, **kwargs):
         # Validate course exists
+        serializer = createLessonSerializer(data = request.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            course = courses.objects.get(id=course_id)
+            course = courses.objects.get(href=serializer.validated_data['course'])
         except courses.DoesNotExist:
             return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        print("request.data is : ",request.data)
 
         # Validate request data
-        serializer = VideoCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        # serializer = VideoCreateSerializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
 
         # Extract validated data
-        topic_title = serializer.validated_data['topic_title']
-        lesson_title = serializer.validated_data['lesson_title']
-        video_title = serializer.validated_data['video_title'] if hasattr(serializer.validated_data, 'video_title') else None
+        topic_title = serializer.validated_data['topic']
+        lesson_title = serializer.validated_data['lesson']
 
 
         # Create or get topic
@@ -654,46 +663,114 @@ class VideoCreateAPIView(APIView):
 
 
         # Check if lesson already has a video
-        print(lesson.video.video_file)
-        if hasattr(lesson, 'video') and lesson.video.video_file == 'default/defImage.png':
+        if hasattr(lesson, 'video') :
             return Response(
                 {"error": "This lesson already has a video"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # Create video (transaction to ensure atomicity)
-        with transaction.atomic():
-            video = LessonVideo.objects.create(
-                lesson=lesson,
-            )
-        return Response(
-            {
-                'video_url': video.video_file.url,
-                'video_id': video.id,
-                'lesson_id': lesson.id,
-                'topic_id': topic.id
-            },
-            status=status.HTTP_201_CREATED
-        )
+        LessonVideo.objects.create(lesson=lesson)
+        lesson_serializer = lessonSerializer(lesson)
+        return Response(lesson_serializer.data, status=status.HTTP_201_CREATED) 
 
-class get_topic_sujjestion_by_course_id(ListAPIView):
-    serializer_class = topicSerializer
+class get_topic_suggestions(ListAPIView):
+    serializer_class = TopicSerializer
     def get_queryset(self):
-        print("self.kwargs is : ", self.kwargs)
-        return Topic.objects.filter(course=self.kwargs['course_id'])
+        course_obj = get_object_or_404(courses, href=self.kwargs['href'])
+        return Topic.objects.filter(course=course_obj.id)
+    
+class get_lesson_suggestions(ListAPIView):
+    serializer_class = lessonSerializer
+    def get_queryset(self):
+        topic_obj = get_object_or_404(Topic, title=self.kwargs['topic_title'])
+        return Lesson.objects.filter(topic=topic_obj)
+
+class client_upload_video(APIView):
+    def post(self, request, *args, **kwargs):
+        print('request.data is : ', request.data)
+        file_size = request.data.get('file_size')
+        file_name = request.data.get('file_name')
+        file_type = request.data.get('file_type')
+        max_size = 50 * 1024 * 1024  # 50MB
+        serializer = VideoCreateSerializer(request.data)
+        # Handle large files (>50MB): Return pre-signed URL
+        if 'video_file' in request.data:
+            return Response({"error": "Do not send file data for files >50MB. Use pre-signed URL."}, status=status.HTTP_400_BAD_REQUEST)
+
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME
+        )
+        try:
+            presigned_url = s3_client.generate_presigned_url(
+                'put_object',
+                Params={
+                    'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                    'Key': f"videos/{file_name}",
+                    'ContentType': file_type
+                },
+                ExpiresIn=3600
+            )
+            return Response({
+                "message": "Use this pre-signed URL for direct S3 upload",
+                "presigned_url": presigned_url,
+                "course": serializer.validated_data.get('course', ''),
+                "topic": serializer.validated_data['topic'],
+                "lesson": serializer.validated_data['lesson']
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class server_upload_view(APIView): #handle by the server rather than directly from client
+    parser_classes = (MultiPartParser,)
+    def post(self, request, lesson_id):
+        lesson = get_object_or_404(Lesson, id=lesson_id)
+        lesson_video = lesson.video
+        lesson_topic = lesson.topic
+        if not lesson_video:
+            return Response({'error':'this lesson shall not have a video'}, status=status.HTTP_400_BAD_REQUEST)
         
+        print("requset.data is : ", request.data)
 
-    
-    
+        file_size = request.data.get('file_size')
+        file_name = request.data.get('file_name')
+        file_type = request.data.get('file_type')
+        max_size = 50 * 1024 * 1024  # 50MB
 
-    
-    
+        # Validate metadata
+        if not file_size or not file_name or not file_type:
+            return Response({"error": "file_size, file_name, and file_type are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-    
-    
-    
-    
-    
+        try:
+            file_size = int(file_size)
+        except ValueError:
+            return Response({"error": "Invalid file_size value."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Validate course, topic, lesson
+        serializer = createVideoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        if file_size <= max_size:
+            print("here we are in the filesize<= max_size")
+            # Handle small files (≤50MB)
+            if 'file' not in request.data:
+                return Response({"error": "file is required for files <= 50MB."}, status=status.HTTP_400_BAD_REQUEST)
 
+            video_file = serializer.validated_data['file']
+            # Save to S3
+            s3_storage = S3Boto3Storage()
+            print('lesson_video is : ', lesson_video)
+            s3_path = f"videos/{lesson_video.url}"
+            s3_storage.save(s3_path, video_file)
+            file_url = s3_storage.url(s3_path)
+            return Response({
+                "message": "File uploaded successfully to S3 via server",
+                "file_url": file_url,
+                "course": lesson_topic.course.href,
+                "topic": lesson_topic.title,
+                "lesson": lesson.title
+            }, status=status.HTTP_201_CREATED)

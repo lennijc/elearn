@@ -15,12 +15,14 @@ def dynamic_upload_to(instance,filename):
 
 def uploadvideo(instance, filename):
     """Generate dynamic upload path for lesson videos based on course/topic/lesson/video_name."""
-    course_href = slugify(instance.lesson.course.href, allow_unicode=True)
-    topic_title = slugify(instance.lesson.topic.title, allow_unicode=True) if instance.lesson.topic else "no-topic"
-    lesson_title = slugify(instance.lesson.title, allow_unicode=True)
+    lesson_instance = instance.lesson
+    topic_instance = lesson_instance.topic
+    course_href = slugify(topic_instance.course, allow_unicode=True)
+    topic_title = slugify(topic_instance.title, allow_unicode=True) if topic_instance else "no-topic"
+    lesson_title = slugify(lesson_instance.title, allow_unicode=True)
     # Use the original filename for video_name
     video_name = os.path.basename(filename)
-    return f"videos/{course_href}/{topic_title}/{lesson_title}/{video_name}"
+    return f"videos/{course_href}/{topic_title}/{lesson_title}/{video_name}/"
 #------------------------------------------------------------------------------*/
 
 class comment(models.Model):
@@ -84,6 +86,9 @@ class courses(models.Model):
     discount=models.PositiveSmallIntegerField(default=0)
     def __str__(self):
         return self.href
+    
+
+
 
 class Topic(models.Model):
     title = models.CharField(max_length=255)
@@ -92,7 +97,6 @@ class Topic(models.Model):
 
     def __str__(self):
         return self.title
-
     class Meta:
         ordering = ['order']
 
@@ -116,15 +120,21 @@ class Lesson(models.Model):
         ordering = ['order']
 
 class LessonVideo(models.Model):
-    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name='video')
-    video_file = models.FileField(upload_to=uploadvideo, default='default/defImage.png')
+    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name='video')#can be foregin key for multiple files upload
+    video_file = models.FileField(upload_to=uploadvideo)
     duration = models.DurationField(null=True, blank=True, help_text="Duration in seconds")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     def __str__(self):
         return f"Video for {self.lesson.title}"
-
+    
+    def save(self, *args, **kwargs):
+        if not self.video_file:
+            #maybe add format like .mp4 later and adding the settings.BASE_URL for bucker domain  
+            self.video_file = uploadvideo(self, 'defaultName')    
+        return super().save(*args, **kwargs)
+    
 class courseUser(models.Model):
     course = models.ForeignKey(courses,on_delete=models.CASCADE)
     user= models.ForeignKey(User,on_delete=models.PROTECT)

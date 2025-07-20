@@ -9,7 +9,8 @@ UserAPIView,coursesViewSet,getMainPageInfo,articleViewSet,createPublishArticle,
 createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
 UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,
 sessionViewSet,getRelatedCourses,contactViewSet,getRelatedSession,
-getDetailSessions,discountCodeCheck,registerUser, lessonViewSet, VideoCreateAPIView, get_topic_sujjestion_by_course_id)
+getDetailSessions,discountCodeCheck,registerUser, lessonViewSet, server_upload_view, get_topic_suggestions
+, get_lesson_suggestions, addLesson,client_upload_video)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -69,6 +70,9 @@ urlpatterns = [
     path('session/detail/<str:href>/<int:pk>/', getDetailSessions.as_view(),name="getRelatedSession"),
     path('off/<str:code>/', discountCodeCheck.as_view(),name="checkDiscountCode"),
     path('register/<str:href>/', registerUser.as_view(),name="registerUserToCourse"),
-    path('course/addLesson/<int:course_id>/', VideoCreateAPIView.as_view(),name="add Lesson+video_url"),
-    path('course/topicList/<int:course_id>/', get_topic_sujjestion_by_course_id.as_view(),name="gettopicsbycourseid"),
+    path('course/addLesson/', addLesson.as_view(),name="addLessonONLY"),
+    path('upload/server/<int:lesson_id>/', server_upload_view.as_view(),name="uploadVideo with server for low size videos"),
+    path('upload/client/<int:lesson_id>/', client_upload_video.as_view(),name="uploadVideo(no server intervention)"),
+    path('course/getTopics/<str:href>/', get_topic_suggestions.as_view(),name="getTopicSuggestion"),
+    path('course/getLessons/<str:topic_title>/', get_lesson_suggestions.as_view(),name="getLessonSuggestion"),
 ]

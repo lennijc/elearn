@@ -288,13 +288,11 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"confirm_password": "The passwords do not match."})
         return data  
 
-
 class userProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name', 'phone','name')
         
-
 class offSerializer(serializers.ModelSerializer):
     class Meta:
         model=off
@@ -317,7 +315,25 @@ class topicSerializer(serializers.ModelSerializer):
         model = Topic
         fields = "__all__"
 
-class VideoCreateSerializer(serializers.Serializer):
-    topic_title = serializers.CharField(max_length=200)
-    lesson_title = serializers.CharField(max_length=200)
-    video_title = serializers.CharField(max_length=200, required=False)
+class createVideoSerializer(serializers.Serializer):
+    file = serializers.FileField(required=False)
+    def validate_file(self, value):
+        max_size = 50 * 1024 * 1024  # 50MB
+        if value and value.size > max_size:
+            raise serializers.ValidationError("File size exceeds 50MB limit.")
+        allowed_types = ['video/mp4', 'video/avi', 'video/mov', 'audio/mpeg']
+        if value and value.content_type not in allowed_types:
+            raise serializers.ValidationError("Unsupported file type. Allowed: mp4, avi, mov.")
+        return value
+       
+class createLessonSerializer(serializers.Serializer):
+    course = serializers.CharField(max_length=200, required=False)
+    topic = serializers.CharField(max_length=200)   
+    lesson = serializers.CharField(max_length=200)
+
+class TopicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Topic#
+        fields = "__all__"
+
+
