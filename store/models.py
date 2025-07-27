@@ -22,7 +22,7 @@ def uploadvideo(instance, filename):
     lesson_title = slugify(lesson_instance.title, allow_unicode=True)
     # Use the original filename for video_name
     video_name = os.path.basename(filename)
-    return f"videos/{course_href}/{topic_title}/{lesson_title}/{video_name}/"
+    return f"videos/{course_href}/{topic_title}/{lesson_title}/{video_name}"
 #------------------------------------------------------------------------------*/
 
 class comment(models.Model):

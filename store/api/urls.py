@@ -10,7 +10,7 @@ createDraftArticle,changeUserRole,publishDraftArticle,commentViewSet,offViewset,
 UpdateDiscountAPIView,retrieveDraftArticle,menuViewSet,CreateSessionView,
 sessionViewSet,getRelatedCourses,contactViewSet,getRelatedSession,
 getDetailSessions,discountCodeCheck,registerUser, lessonViewSet, server_upload_view, get_topic_suggestions
-, get_lesson_suggestions, addLesson,client_upload_video)
+, get_lesson_suggestions, addLesson,client_upload_video, render_front)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -75,4 +75,6 @@ urlpatterns = [
     path('upload/client/<int:lesson_id>/', client_upload_video.as_view(),name="uploadVideo(no server intervention)"),
     path('course/getTopics/<str:href>/', get_topic_suggestions.as_view(),name="getTopicSuggestion"),
     path('course/getLessons/<str:topic_title>/', get_lesson_suggestions.as_view(),name="getLessonSuggestion"),
+    path('renderFront/', render_front, name="renderFront"),
+
 ]

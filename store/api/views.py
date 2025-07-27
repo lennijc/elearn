@@ -40,7 +40,8 @@ from django.conf import settings
 import boto3
 from django.conf import settings
 from storages.backends.s3boto3 import S3Boto3Storage
-
+from django.utils.text import slugify
+from django.shortcuts import render
 
 user = get_user_model()
 
@@ -687,42 +688,49 @@ class get_lesson_suggestions(ListAPIView):
         return Lesson.objects.filter(topic=topic_obj)
 
 class client_upload_video(APIView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request, lesson_id, *args, **kwargs):
+        lesson_obj = get_object_or_404(Lesson, id=lesson_id)
+        if not hasattr(lesson_obj, 'video'):
+            return Response({'error': 'there is no video defined for this lesson'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        lesson_video_obj = lesson_obj.video
+        print('lesson_video_object is : ', lesson_video_obj.video_file)
+
         print('request.data is : ', request.data)
         file_size = request.data.get('file_size')
         file_name = request.data.get('file_name')
         file_type = request.data.get('file_type')
         max_size = 50 * 1024 * 1024  # 50MB
-        serializer = VideoCreateSerializer(request.data)
+        # serializer = createVideoSerializer(data = request.data)
         # Handle large files (>50MB): Return pre-signed URL
         if 'video_file' in request.data:
             return Response({"error": "Do not send file data for files >50MB. Use pre-signed URL."}, status=status.HTTP_400_BAD_REQUEST)
 
         s3_client = boto3.client(
             's3',
+            endpoint_url=settings.LIARA_ENDPOINT,
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_S3_REGION_NAME
         )
-        try:
-            presigned_url = s3_client.generate_presigned_url(
-                'put_object',
-                Params={
-                    'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
-                    'Key': f"videos/{file_name}",
-                    'ContentType': file_type
-                },
-                ExpiresIn=3600
-            )
-            return Response({
-                "message": "Use this pre-signed URL for direct S3 upload",
-                "presigned_url": presigned_url,
-                "course": serializer.validated_data.get('course', ''),
-                "topic": serializer.validated_data['topic'],
-                "lesson": serializer.validated_data['lesson']
-            }, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        print('upload address in db is : ', lesson_video_obj.video_file)
+        # try:
+        presigned_url = s3_client.generate_presigned_url(
+            ClientMethod='put_object',
+            Params={
+                'Bucket': settings.AWS_STORAGE_BUCKET_NAME,  # e.g., 'pshop'
+                'Key': str(lesson_video_obj.video_file),
+                'ContentType': file_type
+            },
+            ExpiresIn=300  # 5 minutes
+        )
+        print('Presigned POST data:', presigned_url)
+        return Response({
+            "url": str(presigned_url),
+            # "fields": presigned_url['fields']
+        }, status=status.HTTP_200_OK)
+        # except Exception as e:
+        #     return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class server_upload_view(APIView): #handle by the server rather than directly from client
     parser_classes = (MultiPartParser,)
@@ -734,7 +742,9 @@ class server_upload_view(APIView): #handle by the server rather than directly fr
             return Response({'error':'this lesson shall not have a video'}, status=status.HTTP_400_BAD_REQUEST)
         
         print("requset.data is : ", request.data)
-
+        file_name = request.FILES.get("file").name
+        cleaned_file_name = slugify(file_name, allow_unicode=False)
+    
         file_size = request.data.get('file_size')
         file_name = request.data.get('file_name')
         file_type = request.data.get('file_type')
@@ -762,15 +772,23 @@ class server_upload_view(APIView): #handle by the server rather than directly fr
 
             video_file = serializer.validated_data['file']
             # Save to S3
-            s3_storage = S3Boto3Storage()
-            print('lesson_video is : ', lesson_video)
-            s3_path = f"videos/{lesson_video.url}"
-            s3_storage.save(s3_path, video_file)
-            file_url = s3_storage.url(s3_path)
+            # s3_storage = S3Boto3Storage()
+            # print('lesson_video is : ', lesson_video)
+            # s3_path = slugify(f"{lesson_video.video_file}{cleaned_file_name}/", allow_unicode=False)
+            # s3_storage.save(s3_path, video_file)
+            # file_url = s3_storage.url(s3_path)
+
+            #save by lessonVideo model
+            lesson_video.video_file = video_file
+            lesson_video.save()
+
             return Response({
                 "message": "File uploaded successfully to S3 via server",
-                "file_url": file_url,
+                "file_url": lesson_video.video_file.url,
                 "course": lesson_topic.course.href,
                 "topic": lesson_topic.title,
                 "lesson": lesson.title
             }, status=status.HTTP_201_CREATED)
+
+def render_front(request):
+    return render(request, 'store/elearn-frontend.html')
